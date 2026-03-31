@@ -174,11 +174,11 @@ class _HomeScreenState extends State<HomeScreen> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: places.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              mainAxisExtent: 86,
+              mainAxisExtent: MediaQuery.of(context).size.width < 360 ? 78 : 72,
             ),
             itemBuilder: (context, index) {
               return _PlaceCard(action: places[index]);

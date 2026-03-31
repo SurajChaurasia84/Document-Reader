@@ -6,67 +6,129 @@ import '../services/app_controller.dart';
 import '../utils/constants.dart';
 import '../widgets/tool_tile.dart';
 
-class ToolsScreen extends StatelessWidget {
+class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
+
+  @override
+  State<ToolsScreen> createState() => _ToolsScreenState();
+}
+
+class _ToolsScreenState extends State<ToolsScreen> {
+  String _query = '';
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
     final tools = <ToolAction>[...coreTools, ...advancedTools];
+    final filteredTools = tools.where((tool) {
+      if (_query.isEmpty) {
+        return true;
+      }
+      final q = _query.toLowerCase();
+      return tool.title.toLowerCase().contains(q) ||
+          tool.description.toLowerCase().contains(q);
+    }).toList();
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
-      children: <Widget>[
-        Text('PDF Tools', style: Theme.of(context).textTheme.headlineMedium),
-        const SizedBox(height: 8),
-        Text(
-          'Fast offline utilities for building, exporting, and upgrading documents.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[
+            Color(0xFF0E1B3B),
+            Color(0xFF101B34),
+            Color(0xFF0A1227),
+          ],
         ),
-        const SizedBox(height: 20),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth < 420 ? 1 : 2;
-            return GridView.builder(
-              itemCount: tools.length,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossAxisCount,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                mainAxisExtent: 190,
+      ),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 140),
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Text(
+                'All Tools',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
-              itemBuilder: (context, index) {
-                final tool = tools[index];
-                return TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0.92, end: 1),
-                  duration: Duration(milliseconds: 220 + (index * 35)),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, child) {
-                    return Transform.scale(scale: value, child: child);
-                  },
-                  child: ToolTile(
+              const Spacer(),
+              const _TopIcon(icon: Icons.notifications_none_rounded),
+              const SizedBox(width: 10),
+              const CircleAvatar(
+                radius: 14,
+                backgroundColor: Color(0xFF5E8CFF),
+                child: Text(
+                  'US',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A2B51),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _query = value.trim();
+                });
+              },
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                hintText: 'Search tools...',
+                hintStyle: TextStyle(color: Color(0xFF8FA5D6)),
+                prefixIcon: Icon(
+                  Icons.search_rounded,
+                  color: Color(0xFF8FA5D6),
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final crossAxisCount = constraints.maxWidth < 300 ? 2 : 3;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: filteredTools.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  mainAxisExtent: 104,
+                ),
+                itemBuilder: (context, index) {
+                  final tool = filteredTools[index];
+                  return ToolTile(
                     tool: tool,
                     onTap: () => _handleToolTap(context, controller, tool),
-                  ),
-                );
-              },
-            );
-          },
-        ),
-        if (controller.statusMessage != null) ...<Widget>[
-          const SizedBox(height: 20),
-          Text(
-            controller.statusMessage!,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                  );
+                },
+              );
+            },
           ),
+          if (controller.statusMessage != null) ...<Widget>[
+            const SizedBox(height: 16),
+            Text(
+              controller.statusMessage!,
+              style: const TextStyle(color: Color(0xFFB9C9F2), fontSize: 13),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 
@@ -108,13 +170,28 @@ class ToolsScreen extends StatelessWidget {
     }
 
     if (context.mounted && controller.statusMessage != null) {
-      _showSnack(context, controller.statusMessage!);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(controller.statusMessage!)));
     }
   }
+}
 
-  void _showSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+class _TopIcon extends StatelessWidget {
+  const _TopIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 30,
+      height: 30,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white70, size: 18),
+    );
   }
 }
