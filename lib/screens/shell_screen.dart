@@ -24,34 +24,8 @@ class ShellScreen extends StatelessWidget {
 
     return Scaffold(
       extendBody: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment.topCenter,
-            radius: 1.5,
-            colors: <Color>[Color(0xFF16243E), AppTheme.background],
-          ),
-        ),
-        child: Stack(
-          children: <Widget>[
-            Positioned(
-              top: -80,
-              right: -40,
-              child: _GlowOrb(color: AppTheme.cyan.withValues(alpha: 0.16)),
-            ),
-            Positioned(
-              bottom: 180,
-              left: -40,
-              child: _GlowOrb(color: AppTheme.purple.withValues(alpha: 0.12)),
-            ),
-            SafeArea(
-              child: IndexedStack(
-                index: controller.currentIndex,
-                children: screens,
-              ),
-            ),
-          ],
-        ),
+      body: SafeArea(
+        child: IndexedStack(index: controller.currentIndex, children: screens),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -88,26 +62,6 @@ class ShellScreen extends StatelessWidget {
             label: 'Settings',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: 220,
-        height: 220,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: <Color>[color, Colors.transparent]),
-        ),
       ),
     );
   }

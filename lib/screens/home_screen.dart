@@ -140,7 +140,6 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context, constraints) {
               final maxWidth = constraints.maxWidth;
               final crossAxisCount = maxWidth < 280 ? 1 : 2;
-              final childAspectRatio = maxWidth < 360 ? 1.45 : 1.65;
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -149,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: childAspectRatio,
+                  mainAxisExtent: maxWidth < 360 ? 78 : 72,
                 ),
                 itemBuilder: (context, index) {
                   return _CategoryCard(category: categories[index]);
@@ -381,7 +380,7 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xFF1E232A),
         borderRadius: BorderRadius.circular(16),
