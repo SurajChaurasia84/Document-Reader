@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
@@ -607,24 +610,25 @@ class _MyFileCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: <Widget>[
-                        Text(
-                          file.extension.toUpperCase(),
-                          style: TextStyle(
-                            color: accent,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: <Widget>[
+                          _MyFileMetaPart(
+                            futureLabel: _FilePageCountLabel.labelFor(file),
+                            fallbackLabel: _FilePageCountLabel.fallbackFor(file),
+                            style: TextStyle(
+                              color: accent,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                        Text(
-                          formatFileSize(file.size),
-                          style: const TextStyle(
-                            color: Color(0xFF727894),
+                          Text(
+                            formatFileSize(file.size),
+                            style: const TextStyle(
+                              color: Color(0xFF727894),
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -693,6 +697,59 @@ class _MyFileCard extends StatelessWidget {
       default:
         return Icons.insert_drive_file_rounded;
     }
+  }
+}
+
+class _MyFileMetaPart extends StatelessWidget {
+  const _MyFileMetaPart({
+    required this.futureLabel,
+    required this.fallbackLabel,
+    required this.style,
+  });
+
+  final Future<String> futureLabel;
+  final String fallbackLabel;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: futureLabel,
+      builder: (context, snapshot) {
+        return Text(snapshot.data ?? fallbackLabel, style: style);
+      },
+    );
+  }
+}
+
+class _FilePageCountLabel {
+  static final Map<String, Future<String>> _cache = <String, Future<String>>{};
+
+  static Future<String> labelFor(AppFile file) {
+    return _cache.putIfAbsent(file.path, () => _load(file));
+  }
+
+  static String fallbackFor(AppFile file) {
+    if (file.isImage) {
+      return '1 page';
+    }
+    return '-- pages';
+  }
+
+  static Future<String> _load(AppFile file) async {
+    if (file.isPdf) {
+      try {
+        final bytes = await File(file.path).readAsBytes();
+        final document = PdfDocument(inputBytes: bytes);
+        final count = document.pages.count;
+        document.dispose();
+        return count == 1 ? '1 page' : '$count pages';
+      } catch (_) {
+        return fallbackFor(file);
+      }
+    }
+
+    return fallbackFor(file);
   }
 }
 

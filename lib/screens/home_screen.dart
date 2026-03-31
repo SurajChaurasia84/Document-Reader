@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
@@ -627,18 +630,16 @@ class _RecentFileCard extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${file.extension.toUpperCase()}  •  ${formatFileSize(file.size)}  •  ${formatDate(file.modifiedAt)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF96A0AE),
-                        fontSize: 12,
+                      const SizedBox(height: 2),
+                      _RecentFileMetaText(
+                        file: file,
+                        textStyle: const TextStyle(
+                          color: Color(0xFF96A0AE),
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ),
               IconButton(
                 onPressed: onFavoriteTap,
@@ -673,6 +674,55 @@ class _RecentFileCard extends StatelessWidget {
       default:
         return const Color(0xFF6B7280);
     }
+  }
+}
+
+class _RecentFileMetaText extends StatelessWidget {
+  const _RecentFileMetaText({required this.file, required this.textStyle});
+
+  final AppFile file;
+  final TextStyle textStyle;
+
+  static final Map<String, Future<String>> _pageCountCache =
+      <String, Future<String>>{};
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _pageCountCache.putIfAbsent(file.path, () => _pageCountLabel(file)),
+      builder: (context, snapshot) {
+        final pageLabel = snapshot.data ?? _fallbackPageLabel(file);
+        return Text(
+          '$pageLabel  •  ${formatFileSize(file.size)}  •  ${formatDate(file.modifiedAt)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textStyle,
+        );
+      },
+    );
+  }
+
+  static Future<String> _pageCountLabel(AppFile file) async {
+    if (file.isPdf) {
+      try {
+        final bytes = await File(file.path).readAsBytes();
+        final document = PdfDocument(inputBytes: bytes);
+        final count = document.pages.count;
+        document.dispose();
+        return count == 1 ? '1 page' : '$count pages';
+      } catch (_) {
+        return _fallbackPageLabel(file);
+      }
+    }
+
+    return _fallbackPageLabel(file);
+  }
+
+  static String _fallbackPageLabel(AppFile file) {
+    if (file.isImage) {
+      return '1 page';
+    }
+    return '-- pages';
   }
 }
 
