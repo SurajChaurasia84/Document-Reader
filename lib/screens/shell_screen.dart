@@ -36,32 +36,130 @@ class ShellScreen extends StatelessWidget {
         icon: const Icon(Icons.document_scanner),
         label: const Text('Scan'),
       ),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: AppTheme.surface.withValues(alpha: 0.92),
-        selectedIndex: controller.currentIndex,
-        onDestinationSelected: controller.updateNavigation,
-        destinations: const <NavigationDestination>[
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+      bottomNavigationBar: Container(
+        color: AppTheme.surface,
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+        child: SafeArea(
+          top: false,
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: _BottomTabItem(
+                  icon: Icons.home_outlined,
+                  selectedIcon: Icons.home_rounded,
+                  label: 'Home',
+                  selected: controller.currentIndex == 0,
+                  onTap: () => controller.updateNavigation(0),
+                ),
+              ),
+              Expanded(
+                child: _BottomTabItem(
+                  icon: Icons.auto_fix_high_outlined,
+                  selectedIcon: Icons.auto_fix_high_rounded,
+                  label: 'Tools',
+                  selected: controller.currentIndex == 1,
+                  onTap: () => controller.updateNavigation(1),
+                ),
+              ),
+              Expanded(
+                child: _BottomTabItem(
+                  icon: Icons.folder_outlined,
+                  selectedIcon: Icons.folder_rounded,
+                  label: 'Files',
+                  selected: controller.currentIndex == 2,
+                  onTap: () => controller.updateNavigation(2),
+                ),
+              ),
+              Expanded(
+                child: _BottomTabItem(
+                  icon: Icons.settings_outlined,
+                  selectedIcon: Icons.settings,
+                  label: 'Settings',
+                  selected: controller.currentIndex == 3,
+                  onTap: () => controller.updateNavigation(3),
+                ),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.auto_fix_high_outlined),
-            selectedIcon: Icon(Icons.auto_fix_high),
-            label: 'Tools',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder),
-            label: 'Files',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.tune_outlined),
-            selectedIcon: Icon(Icons.tune),
-            label: 'Settings',
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomTabItem extends StatelessWidget {
+  const _BottomTabItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? AppTheme.cyan : Colors.white60;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              width: 28,
+              height: 3,
+              decoration: BoxDecoration(
+                color: selected ? AppTheme.cyan : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            const SizedBox(height: 3),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOut,
+              width: 30,
+              height: 30,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.transparent,
+                boxShadow: selected
+                    ? <BoxShadow>[
+                        BoxShadow(
+                          color: AppTheme.cyan.withValues(alpha: 0.05),
+                          blurRadius: 16,
+                          spreadRadius: 0,
+                        ),
+                      ]
+                    : const <BoxShadow>[],
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                selected ? selectedIcon : icon,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 1),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
