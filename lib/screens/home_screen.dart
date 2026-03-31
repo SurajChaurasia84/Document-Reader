@@ -92,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
       _PlaceAction(
-        title: 'Recent files',
+        title: 'Last Opened',
         icon: Icons.history_rounded,
         color: const Color(0xFF7B6A47),
         onTap: () {
