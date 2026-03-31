@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
         count: allFiles.where((file) => file.extension == 'docx').length,
         files: allFiles.where((file) => file.extension == 'docx').toList(),
         icon: Icons.description_rounded,
-        color: const Color(0xFF2F6FD6),
+        color: const Color(0xFFF3B63F),
       ),
       _HomeCategory(
         title: 'Excel files',
@@ -83,21 +83,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _PlaceAction(
         title: 'Folder files',
         icon: Icons.folder_open_rounded,
-        color: const Color(0xFFF3B63F),
+        color: const Color(0xFF2F6FD6),
         onTap: () async {
           final file = await controller.pickDocument();
           if (file != null && context.mounted) {
             _openViewer(context, file);
-          }
-        },
-      ),
-      _PlaceAction(
-        title: 'Last Opened',
-        icon: Icons.history_rounded,
-        color: const Color(0xFF7B6A47),
-        onTap: () {
-          if (filteredFiles.isNotEmpty) {
-            _openViewer(context, filteredFiles.first);
           }
         },
       ),
@@ -109,6 +99,16 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _query = '';
           });
+        },
+      ),
+      _PlaceAction(
+        title: 'Last Opened',
+        icon: Icons.history_rounded,
+        color: const Color(0xFF7B6A47),
+        onTap: () {
+          if (filteredFiles.isNotEmpty) {
+            _openViewer(context, filteredFiles.first);
+          }
         },
       ),
       _PlaceAction(
