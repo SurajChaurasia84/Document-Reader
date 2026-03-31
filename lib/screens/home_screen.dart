@@ -6,6 +6,7 @@ import '../services/app_controller.dart';
 import '../widgets/fixed_top_header.dart';
 import 'category_files_screen.dart';
 import 'document_viewer_screen.dart';
+import 'my_files_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -289,6 +290,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openCategory(BuildContext context, _HomeCategory category) {
+    if (category.title == 'All files') {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const MyFilesScreen()));
+      return;
+    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) =>
