@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -24,8 +26,7 @@ enum FileFormatFilter {
   word('Word'),
   excel('Excel'),
   ppt('PPT'),
-  text('Text'),
-  image('Image');
+  text('Text');
 
   const FileFormatFilter(this.label);
   final String label;
@@ -132,7 +133,22 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
                         final file = sortedFiles[index];
                         return FileTile(
                           file: file,
-                          onTap: () {
+                          onTap: () async {
+                            if (!await File(file.path).exists()) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'This file is no longer available on your device.',
+                                    ),
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+                            if (!context.mounted) {
+                              return;
+                            }
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) =>
@@ -176,8 +192,6 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
         return files
             .where((file) => <String>['txt', 'csv', 'rtf'].contains(file.extension))
             .toList();
-      case FileFormatFilter.image:
-        return files.where((file) => file.isImage).toList();
     }
   }
 

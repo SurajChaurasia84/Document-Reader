@@ -54,9 +54,18 @@ class AppController extends ChangeNotifier {
 
   Future<void> refreshAll() async {
     final favorites = await storageService.getFavorites();
-    recentFiles = (await databaseService.getRecentFiles())
-        .map((file) => file.copyWith(isFavorite: favorites.contains(file.path)))
-        .toList();
+    final storedRecentFiles = await databaseService.getRecentFiles();
+    final availableRecentFiles = <AppFile>[];
+    for (final file in storedRecentFiles) {
+      if (await File(file.path).exists()) {
+        availableRecentFiles.add(
+          file.copyWith(isFavorite: favorites.contains(file.path)),
+        );
+      } else {
+        await databaseService.deleteRecentFile(file.path);
+      }
+    }
+    recentFiles = availableRecentFiles;
     internalFiles = await fileService.listInternalFiles(favorites: favorites);
     downloadFiles = await fileService.listDownloads(favorites: favorites);
 
@@ -105,6 +114,11 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> openFile(AppFile file) async {
+    if (!await File(file.path).exists()) {
+      statusMessage = 'This file is no longer available on your device.';
+      notifyListeners();
+      return;
+    }
     await databaseService.upsertRecentFile(file);
     await storageService.setLastOpenedPath(file.path);
     await refreshAll();

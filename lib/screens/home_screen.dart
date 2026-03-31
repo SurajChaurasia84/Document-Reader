@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: <Widget>[
         FixedTopHeader(
-          title: 'Doc Reader',
+          title: 'PureDoc',
           trailing: IgnorePointer(
             ignoring: !_searchCollapsed,
             child: AnimatedOpacity(
@@ -166,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
             backgroundColor: const Color(0xFF1E232A),
             child: ListView(
               controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 120),
               children: <Widget>[
                 _SearchField(
                   query: _query,
@@ -178,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     });
                   },
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 12),
                 _SectionLabel(title: 'Categories'),
                 const SizedBox(height: 12),
                 LayoutBuilder(
@@ -293,9 +293,22 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openViewer(BuildContext context, AppFile file) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)),
-    );
+    File(file.path).exists().then((exists) {
+      if (!context.mounted) {
+        return;
+      }
+      if (!exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This file is no longer available on your device.'),
+          ),
+        );
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)),
+      );
+    });
   }
 
   void _openCategory(BuildContext context, _HomeCategory category) {
@@ -703,10 +716,9 @@ class _RecentFileMetaText extends StatelessWidget {
   }
 
   static Future<String> _pageCountLabel(AppFile file) async {
-    if (file.isPdf) {
+    if (file.isPdf && file.size <= 15 * 1024 * 1024) {
       try {
-        final bytes = await File(file.path).readAsBytes();
-        final document = PdfDocument(inputBytes: bytes);
+        final document = PdfDocument(inputBytes: await File(file.path).readAsBytes());
         final count = document.pages.count;
         document.dispose();
         return count == 1 ? '1 page' : '$count pages';

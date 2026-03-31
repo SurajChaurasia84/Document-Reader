@@ -18,9 +18,11 @@ class DocumentViewerScreen extends StatefulWidget {
 }
 
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
-  late final PdfControllerPinch? _pdfController = widget.file.isPdf
+  late final bool _fileExists = File(widget.file.path).existsSync();
+  late final PdfControllerPinch? _pdfController = widget.file.isPdf && _fileExists
       ? PdfControllerPinch(document: PdfDocument.openFile(widget.file.path))
       : null;
+  double _zoomScale = 1;
 
   @override
   void initState() {
@@ -56,53 +58,101 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: <Widget>[
-          Expanded(child: _buildContent(context)),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: <Widget>[
-                FilledButton.icon(
-                  onPressed: () => _showTextDialog(
-                    context,
-                    'OCR Result',
-                    () => controller.runOcrForFile(widget.file),
-                  ),
-                  icon: const Icon(Icons.text_snippet_outlined),
-                  label: const Text('OCR'),
-                ),
-                FilledButton.icon(
-                  onPressed: () => _showTextDialog(
-                    context,
-                    'AI Summary',
-                    () => controller.summarizeFile(widget.file),
-                  ),
-                  icon: const Icon(Icons.auto_awesome),
-                  label: const Text('Summarize'),
-                ),
-                FilledButton.icon(
-                  onPressed: () => _showTextDialog(
-                    context,
-                    'Translation',
-                    () => controller.translateFile(widget.file),
-                  ),
-                  icon: const Icon(Icons.translate),
-                  label: const Text('Translate'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      body: _buildContent(context),
     );
   }
 
   Widget _buildContent(BuildContext context) {
+    if (!_fileExists) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: GlassCard(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'File not found',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'This file looks deleted, moved, or no longer accessible.',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (widget.file.isPdf && _pdfController != null) {
-      return PdfViewPinch(controller: _pdfController);
+      return Stack(
+        children: <Widget>[
+          Positioned.fill(
+            child: Container(
+              color: Colors.black,
+              child: PdfViewPinch(
+                controller: _pdfController,
+                backgroundDecoration: const BoxDecoration(color: Colors.black),
+              ),
+            ),
+          ),
+          Positioned(
+            right: 14,
+            bottom: 22,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                _ZoomActionButton(
+                  icon: Icons.add_rounded,
+                  onTap: _zoomIn,
+                ),
+                const SizedBox(height: 10),
+                _ZoomActionButton(
+                  icon: Icons.remove_rounded,
+                  onTap: _zoomOut,
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 22,
+            child: Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.58),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  child: PdfPageNumber(
+                    controller: _pdfController,
+                    builder: (context, loadingState, page, pagesCount) {
+                      final total = pagesCount ?? 0;
+                      return Text(
+                        '$page / $total',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
     }
 
     if (widget.file.isText) {
@@ -122,12 +172,9 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
     if (widget.file.isImage) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Image.file(File(widget.file.path), fit: BoxFit.contain),
-          ),
+        child: SizedBox(
+          width: double.infinity,
+          child: Image.file(File(widget.file.path), fit: BoxFit.contain),
         ),
       );
     }
@@ -156,30 +203,49 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     );
   }
 
-  Future<void> _showTextDialog(
-    BuildContext context,
-    String title,
-    Future<String?> Function() loader,
-  ) async {
-    final text = await loader();
-    if (!context.mounted || text == null) {
+  void _zoomIn() {
+    _setZoom((_zoomScale + 0.25).clamp(1.0, 4.0));
+  }
+
+  void _zoomOut() {
+    _setZoom((_zoomScale - 0.25).clamp(1.0, 4.0));
+  }
+
+  void _setZoom(double nextScale) {
+    if (_pdfController == null) {
       return;
     }
+    setState(() {
+      _zoomScale = nextScale;
+      _pdfController.value = Matrix4.diagonal3Values(
+        _zoomScale,
+        _zoomScale,
+        1,
+      );
+    });
+  }
+}
 
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(title),
-          content: SingleChildScrollView(child: SelectableText(text)),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
+class _ZoomActionButton extends StatelessWidget {
+  const _ZoomActionButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withValues(alpha: 0.58),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 42,
+          height: 42,
+          child: Icon(icon, color: Colors.white),
+        ),
+      ),
     );
   }
 }

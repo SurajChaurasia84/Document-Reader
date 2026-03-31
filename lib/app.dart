@@ -29,7 +29,7 @@ class DocReaderApp extends StatelessWidget {
       )..initialize(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Doc Reader',
+        title: 'PureDoc',
         theme: AppTheme.darkTheme,
         home: const ShellScreen(),
       ),

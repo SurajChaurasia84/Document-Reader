@@ -8,6 +8,7 @@ import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../utils/formatters.dart';
 import 'document_viewer_screen.dart';
+import 'photo_preview_screen.dart';
 import 'scanner_screen.dart';
 
 enum MyFilesSortOption {
@@ -38,7 +39,6 @@ enum MyFilesFilter {
   word('Word'),
   excel('Excel'),
   ppt('PPT'),
-  image('Image'),
   text('Text');
 
   const MyFilesFilter(this.label);
@@ -159,6 +159,18 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                     child: _MyFileCard(
                       file: file,
                       onTap: () async {
+                        if (!await File(file.path).exists()) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'This file is no longer available on your device.',
+                                ),
+                              ),
+                            );
+                          }
+                          return;
+                        }
                         await controller.openFile(file);
                         if (!context.mounted) {
                           return;
@@ -198,15 +210,21 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
       case MyFilesFilter.pdf:
         return files.where((file) => file.extension == 'pdf').toList();
       case MyFilesFilter.word:
-        return files.where((file) => file.extension == 'docx').toList();
+        return files
+            .where((file) => <String>['doc', 'docx'].contains(file.extension))
+            .toList();
       case MyFilesFilter.excel:
-        return files.where((file) => file.extension == 'xlsx').toList();
+        return files
+            .where((file) => <String>['xls', 'xlsx'].contains(file.extension))
+            .toList();
       case MyFilesFilter.ppt:
-        return files.where((file) => file.extension == 'pptx').toList();
-      case MyFilesFilter.image:
-        return files.where((file) => file.isImage).toList();
+        return files
+            .where((file) => <String>['ppt', 'pptx'].contains(file.extension))
+            .toList();
       case MyFilesFilter.text:
-        return files.where((file) => file.extension == 'txt').toList();
+        return files
+            .where((file) => <String>['txt', 'csv', 'rtf'].contains(file.extension))
+            .toList();
     }
   }
 
@@ -263,10 +281,7 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
           },
           onPhotoLibrary: () {
             Navigator.of(sheetContext).pop();
-            _showHint(
-              context,
-              'Photo Library import will be added with image selection flow.',
-            );
+            _openPhotoLibraryPreview(context, controller);
           },
           onScanDocument: () {
             Navigator.of(sheetContext).pop();
@@ -291,6 +306,31 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
         );
       },
     );
+  }
+
+  Future<void> _openPhotoLibraryPreview(
+    BuildContext context,
+    AppController controller,
+  ) async {
+    try {
+      final imagePaths = await controller.fileService.pickPhotoLibraryImages();
+      if (!context.mounted || imagePaths.isEmpty) {
+        return;
+      }
+
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PhotoPreviewScreen(imagePaths: imagePaths),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
   }
 }
 
@@ -574,28 +614,34 @@ class _MyFileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _accentForFile(file);
     return Material(
-      color: const Color(0xFF121524),
-      borderRadius: BorderRadius.circular(18),
+      color: const Color(0xFF1E232A),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: <Widget>[
               Container(
-                width: 48,
-                height: 48,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: accent.withValues(alpha: 0.22)),
+                  color: _fileColor(file.extension),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(_iconForFile(file), color: accent, size: 22),
+                alignment: Alignment.center,
+                child: Text(
+                  file.extension.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -610,38 +656,16 @@ class _MyFileCard extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: <Widget>[
-                          _MyFileMetaPart(
-                            futureLabel: _FilePageCountLabel.labelFor(file),
-                            fallbackLabel: _FilePageCountLabel.fallbackFor(file),
-                            style: TextStyle(
-                              color: accent,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            formatFileSize(file.size),
-                            style: const TextStyle(
-                              color: Color(0xFF727894),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          formatDate(file.modifiedAt),
-                          style: const TextStyle(
-                            color: Color(0xFF727894),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 2),
+                    _MyFileMetaPart(
+                      futureLabel: _FilePageCountLabel.labelFor(file),
+                      fallbackLabel: _FilePageCountLabel.fallbackFor(file),
+                      size: file.size,
+                      modifiedAt: file.modifiedAt,
+                      style: const TextStyle(
+                        color: Color(0xFF96A0AE),
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -654,8 +678,8 @@ class _MyFileCard extends StatelessWidget {
                       ? Icons.star_rounded
                       : Icons.star_border_rounded,
                   color: file.isFavorite
-                      ? const Color(0xFFFFA73A)
-                      : const Color(0xFF747A97),
+                      ? const Color(0xFFF3B63F)
+                      : const Color(0xFF96A0AE),
                 ),
               ),
             ],
@@ -665,37 +689,25 @@ class _MyFileCard extends StatelessWidget {
     );
   }
 
-  static Color _accentForFile(AppFile file) {
-    switch (file.extension) {
+  static Color _fileColor(String extension) {
+    switch (extension) {
       case 'pdf':
-        return const Color(0xFFD14B40);
+        return const Color(0xFFD93025);
+      case 'doc':
       case 'docx':
-        return const Color(0xFF4B79F6);
+        return const Color(0xFF2F6FD6);
+      case 'xls':
       case 'xlsx':
-        return const Color(0xFF27B36A);
+        return const Color(0xFF16A34A);
+      case 'ppt':
       case 'pptx':
-        return const Color(0xFFFF9F2F);
+        return const Color(0xFFE9742B);
       case 'txt':
-        return const Color(0xFF7C86A9);
+      case 'csv':
+      case 'rtf':
+        return const Color(0xFF586274);
       default:
-        return const Color(0xFF5C79FF);
-    }
-  }
-
-  static IconData _iconForFile(AppFile file) {
-    switch (file.extension) {
-      case 'pdf':
-        return Icons.picture_as_pdf_rounded;
-      case 'docx':
-        return Icons.description_rounded;
-      case 'xlsx':
-        return Icons.table_chart_rounded;
-      case 'pptx':
-        return Icons.slideshow_rounded;
-      case 'txt':
-        return Icons.article_rounded;
-      default:
-        return Icons.insert_drive_file_rounded;
+        return const Color(0xFF6B7280);
     }
   }
 }
@@ -704,11 +716,15 @@ class _MyFileMetaPart extends StatelessWidget {
   const _MyFileMetaPart({
     required this.futureLabel,
     required this.fallbackLabel,
+    required this.size,
+    required this.modifiedAt,
     required this.style,
   });
 
   final Future<String> futureLabel;
   final String fallbackLabel;
+  final int size;
+  final DateTime modifiedAt;
   final TextStyle style;
 
   @override
@@ -716,7 +732,12 @@ class _MyFileMetaPart extends StatelessWidget {
     return FutureBuilder<String>(
       future: futureLabel,
       builder: (context, snapshot) {
-        return Text(snapshot.data ?? fallbackLabel, style: style);
+        return Text(
+          '${snapshot.data ?? fallbackLabel}  •  ${formatFileSize(size)}  •  ${formatDate(modifiedAt)}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: style,
+        );
       },
     );
   }
@@ -737,10 +758,9 @@ class _FilePageCountLabel {
   }
 
   static Future<String> _load(AppFile file) async {
-    if (file.isPdf) {
+    if (file.isPdf && file.size <= 15 * 1024 * 1024) {
       try {
-        final bytes = await File(file.path).readAsBytes();
-        final document = PdfDocument(inputBytes: bytes);
+        final document = PdfDocument(inputBytes: await File(file.path).readAsBytes());
         final count = document.pages.count;
         document.dispose();
         return count == 1 ? '1 page' : '$count pages';
@@ -827,13 +847,13 @@ class _ImportSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'Choose how to add files to Doc Reader',
-                style: TextStyle(
-                  color: Color(0xFF8A90AA),
-                  fontSize: 13,
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Choose how to add files to PureDoc',
+                  style: TextStyle(
+                    color: Color(0xFF8A90AA),
+                    fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -860,29 +880,6 @@ class _ImportSheet extends StatelessWidget {
               subtitle: 'Use camera to scan physical docs',
               onTap: onScanDocument,
             ),
-            _ImportActionTile(
-              icon: Icons.cloud_rounded,
-              color: const Color(0xFF3B82F6),
-              title: 'Google Drive',
-              subtitle: 'Connect cloud storage',
-              trailing: const _ProBadge(),
-              onTap: onGoogleDrive,
-            ),
-            _ImportActionTile(
-              icon: Icons.cloud_queue_rounded,
-              color: const Color(0xFF2563EB),
-              title: 'Dropbox',
-              subtitle: 'Connect cloud storage',
-              trailing: const _ProBadge(),
-              onTap: onDropbox,
-            ),
-            _ImportActionTile(
-              icon: Icons.link_rounded,
-              color: const Color(0xFF4062D8),
-              title: 'Import via URL',
-              subtitle: 'Paste a direct file link',
-              onTap: onImportUrl,
-            ),
           ],
         ),
       ),
@@ -897,7 +894,6 @@ class _ImportActionTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    this.trailing,
   });
 
   final IconData icon;
@@ -905,7 +901,6 @@ class _ImportActionTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -954,10 +949,6 @@ class _ImportActionTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (trailing != null) ...<Widget>[
-                  trailing!,
-                  const SizedBox(width: 8),
-                ],
                 const Icon(
                   Icons.chevron_right_rounded,
                   color: Color(0xFF8A90AA),
@@ -965,30 +956,6 @@ class _ImportActionTile extends StatelessWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProBadge extends StatelessWidget {
-  const _ProBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2C1A0A),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFFA73A)),
-      ),
-      child: const Text(
-        'PRO',
-        style: TextStyle(
-          color: Color(0xFFFFA73A),
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
         ),
       ),
     );

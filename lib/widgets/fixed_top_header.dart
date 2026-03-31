@@ -27,7 +27,7 @@ class FixedTopHeader extends StatelessWidget {
         width: double.infinity,
         height: 52,
         color: const Color(0xFF0A0E1A),
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: 6),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[

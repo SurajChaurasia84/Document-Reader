@@ -52,4 +52,13 @@ class DatabaseService {
     );
     return rows.map((row) => AppFile.fromMap(row)).toList();
   }
+
+  Future<void> deleteRecentFile(String path) async {
+    await init();
+    await _database!.delete(
+      _tableRecent,
+      where: 'path = ?',
+      whereArgs: <Object?>[path],
+    );
+  }
 }

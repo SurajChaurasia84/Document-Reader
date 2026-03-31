@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -8,6 +10,8 @@ import 'package:permission_handler/permission_handler.dart';
 import '../models/app_file.dart';
 
 class FileService {
+  final ImagePicker _imagePicker = ImagePicker();
+
   static const supportedExtensions = <String>[
     'pdf',
     'doc',
@@ -19,10 +23,6 @@ class FileService {
     'txt',
     'csv',
     'rtf',
-    'jpg',
-    'jpeg',
-    'png',
-    'webp',
   ];
 
   Future<void> ensureStoragePermissions() async {
@@ -100,19 +100,72 @@ class FileService {
     return result.paths.whereType<String>().toList();
   }
 
+  Future<List<String>> pickPhotoLibraryImages({
+    bool allowMultiple = true,
+  }) async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      try {
+        List<XFile> photos;
+        if (allowMultiple) {
+          try {
+            photos = await _imagePicker.pickMultiImage(
+              imageQuality: 100,
+              requestFullMetadata: false,
+            );
+          } on PlatformException {
+            final single = await _imagePicker.pickImage(
+              source: ImageSource.gallery,
+              imageQuality: 100,
+              requestFullMetadata: false,
+            );
+            photos = <XFile>[?single];
+          }
+        } else {
+          final single = await _imagePicker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 100,
+            requestFullMetadata: false,
+          );
+          photos = <XFile>[?single];
+        }
+
+        return photos.map((file) => file.path).toList();
+      } on PlatformException catch (error) {
+        throw FileSystemException(
+          'Unable to open photo library: ${error.message ?? error.code}',
+        );
+      }
+    }
+
+    return pickImageFiles(allowMultiple: allowMultiple);
+  }
+
   Future<List<AppFile>> listInternalFiles({
     Set<String> favorites = const <String>{},
   }) async {
     await ensureStoragePermissions();
     if (Platform.isAndroid) {
-      final storageRoot = Directory('/storage/emulated/0');
-      return _listSupportedFiles(
-        storageRoot,
+      final directories = <Directory>[
+        Directory('/storage/emulated/0/Documents'),
+        Directory('/storage/emulated/0/Document'),
+        Directory('/storage/emulated/0/Movies'),
+        Directory('/storage/emulated/0/Recordings'),
+        Directory('/storage/emulated/0/Podcasts'),
+        Directory('/storage/emulated/0/Books'),
+      ];
+      return _listSupportedFilesFromDirectories(
+        directories,
         favorites: favorites,
         excludedPaths: <String>{
           '/storage/emulated/0/Download',
           '/storage/emulated/0/Downloads',
           '/storage/emulated/0/Android',
+          '/storage/emulated/0/.Trash',
+          '/storage/emulated/0/Trash',
+          '/storage/emulated/0/Recycle Bin',
+          '/storage/emulated/0/.recycle',
+          '/storage/emulated/0/Deleted',
+          '/storage/emulated/0/.Deleted',
         },
       );
     }
@@ -142,6 +195,29 @@ class FileService {
     return _listSupportedFiles(directory, favorites: favorites);
   }
 
+  Future<List<AppFile>> _listSupportedFilesFromDirectories(
+    List<Directory> directories, {
+    required Set<String> favorites,
+    Set<String> excludedPaths = const <String>{},
+  }) async {
+    final filesByPath = <String, AppFile>{};
+
+    for (final directory in directories) {
+      final files = await _listSupportedFiles(
+        directory,
+        favorites: favorites,
+        excludedPaths: excludedPaths,
+      );
+      for (final file in files) {
+        filesByPath[file.path] = file;
+      }
+    }
+
+    final allFiles = filesByPath.values.toList()
+      ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    return allFiles;
+  }
+
   Future<List<AppFile>> _listSupportedFiles(
     Directory directory, {
     required Set<String> favorites,
@@ -164,6 +240,9 @@ class FileService {
         }
 
         final normalizedPath = p.normalize(entity.path).toLowerCase();
+        if (_isIgnoredPath(normalizedPath)) {
+          continue;
+        }
         final isExcluded = normalizedExclusions.any(
           (path) =>
               normalizedPath == path ||
@@ -201,5 +280,19 @@ class FileService {
 
   Future<String> readTextFile(String path) {
     return File(path).readAsString();
+  }
+
+  bool _isIgnoredPath(String normalizedPath) {
+    final ignoredSegments = <String>[
+      '${Platform.pathSeparator}.',
+      '${Platform.pathSeparator}.trash${Platform.pathSeparator}',
+      '${Platform.pathSeparator}trash${Platform.pathSeparator}',
+      '${Platform.pathSeparator}deleted${Platform.pathSeparator}',
+      '${Platform.pathSeparator}.deleted${Platform.pathSeparator}',
+      '${Platform.pathSeparator}recycle bin${Platform.pathSeparator}',
+      '${Platform.pathSeparator}.recycle${Platform.pathSeparator}',
+    ];
+
+    return ignoredSegments.any((segment) => normalizedPath.contains(segment));
   }
 }
