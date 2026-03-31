@@ -6,6 +6,9 @@ import '../services/app_controller.dart';
 import '../utils/constants.dart';
 import '../widgets/fixed_top_header.dart';
 import '../widgets/tool_tile.dart';
+import 'merge_pdf_screen.dart';
+import 'scanner_screen.dart';
+import 'split_pdf_screen.dart';
 
 class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
@@ -76,7 +79,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      mainAxisExtent: 104,
+                      mainAxisExtent: 110,
                     ),
                     itemBuilder: (context, index) {
                       final tool = filteredTools[index];
@@ -112,10 +115,34 @@ class _ToolsScreenState extends State<ToolsScreen> {
   ) async {
     switch (tool.id) {
       case 'merge_pdf':
-        await controller.mergePdfs();
+        final files = await controller.fileService.pickPdfFiles(allowMultiple: true);
+        if (files.length < 2) {
+          controller.setStatus('Pick at least two PDF files to merge.');
+          break;
+        }
+        if (!context.mounted) {
+          return;
+        }
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => MergePdfScreen(initialPaths: files),
+          ),
+        );
         break;
       case 'split_pdf':
-        await controller.splitPdf();
+        final files = await controller.fileService.pickPdfFiles(allowMultiple: false);
+        if (files.isEmpty) {
+          controller.setStatus('Pick a PDF to split.');
+          break;
+        }
+        if (!context.mounted) {
+          return;
+        }
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SplitPdfScreen(inputPath: files.first),
+          ),
+        );
         break;
       case 'image_to_pdf':
         await controller.imageToPdf();
@@ -126,6 +153,14 @@ class _ToolsScreenState extends State<ToolsScreen> {
       case 'compress_pdf':
         await controller.compressPdf();
         break;
+      case 'scan_to_pdf':
+        if (!context.mounted) {
+          return;
+        }
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const ScannerScreen()),
+        );
+        return;
       case 'ocr_pdf':
         controller.setStatus('Open a file to run OCR from the viewer screen.');
         break;

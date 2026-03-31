@@ -10,6 +10,7 @@ import '../utils/formatters.dart';
 import '../widgets/fixed_top_header.dart';
 import 'category_files_screen.dart';
 import 'document_viewer_screen.dart';
+import 'my_creations_screen.dart';
 import 'my_files_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -137,9 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: 'My Creation',
         icon: Icons.edit_note_rounded,
         color: const Color(0xFFE15A3B),
-        onTap: () {
-          controller.updateNavigation(1);
-        },
+        onTap: () => _openMyCreationsScreen(context, controller),
       ),
     ];
 
@@ -336,6 +335,41 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const MyFilesScreen()));
+  }
+
+  Future<void> _openMyCreationsScreen(
+    BuildContext context,
+    AppController controller,
+  ) async {
+    try {
+      final createdFiles = await controller.pdfService.listCreatedFiles(
+        favorites: controller.favoriteFiles.map((file) => file.path).toSet(),
+      );
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => MyCreationsScreen(initialFiles: createdFiles),
+        ),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const MyCreationsScreen(),
+        ),
+      );
+    }
   }
 
   void _handleScroll() {

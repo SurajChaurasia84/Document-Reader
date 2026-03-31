@@ -122,6 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               icon: Icons.sd_card_rounded,
                               accent: const Color(0xFF7B86FF),
                               title: 'SD Card',
+                              showUsedValue: false,
                             ),
                           ],
                         ),
@@ -420,7 +421,7 @@ class _StorageCard extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              const Spacer(),
+              if (showUsedValue) const Spacer(),
               Text(
                 'Available: ${availableValue ?? availableStorage}',
                 textAlign: TextAlign.right,
