@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/tool_action.dart';
 import '../services/app_controller.dart';
 import '../utils/constants.dart';
+import '../widgets/fixed_top_header.dart';
 import '../widgets/tool_tile.dart';
 
 class ToolsScreen extends StatefulWidget {
@@ -29,92 +30,77 @@ class _ToolsScreenState extends State<ToolsScreen> {
           tool.description.toLowerCase().contains(q);
     }).toList();
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 140),
+    return Column(
       children: <Widget>[
-          Row(
+        const FixedTopHeader(title: 'All Tools'),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 140),
             children: <Widget>[
-              Text(
-                'All Tools',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A2B51),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.08),
+                  ),
                 ),
-              ),
-              const Spacer(),
-              const _TopIcon(icon: Icons.notifications_none_rounded),
-              const SizedBox(width: 10),
-              const CircleAvatar(
-                radius: 14,
-                backgroundColor: Color(0xFF5E8CFF),
-                child: Text(
-                  'US',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
+                child: TextField(
+                  onChanged: (value) {
+                    setState(() {
+                      _query = value.trim();
+                    });
+                  },
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: 'Search tools...',
+                    hintStyle: TextStyle(color: Color(0xFF8FA5D6)),
+                    prefixIcon: Icon(
+                      Icons.search_rounded,
+                      color: Color(0xFF8FA5D6),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF1A2B51),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            ),
-            child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  _query = value.trim();
-                });
-              },
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: 'Search tools...',
-                hintStyle: TextStyle(color: Color(0xFF8FA5D6)),
-                prefixIcon: Icon(
-                  Icons.search_rounded,
-                  color: Color(0xFF8FA5D6),
-                ),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final crossAxisCount = constraints.maxWidth < 300 ? 2 : 3;
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: filteredTools.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  mainAxisExtent: 104,
-                ),
-                itemBuilder: (context, index) {
-                  final tool = filteredTools[index];
-                  return ToolTile(
-                    tool: tool,
-                    onTap: () => _handleToolTap(context, controller, tool),
+              const SizedBox(height: 18),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final crossAxisCount = constraints.maxWidth < 300 ? 2 : 3;
+                  return GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filteredTools.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      mainAxisExtent: 104,
+                    ),
+                    itemBuilder: (context, index) {
+                      final tool = filteredTools[index];
+                      return ToolTile(
+                        tool: tool,
+                        onTap: () => _handleToolTap(context, controller, tool),
+                      );
+                    },
                   );
                 },
-              );
-            },
+              ),
+              if (controller.statusMessage != null) ...<Widget>[
+                const SizedBox(height: 16),
+                Text(
+                  controller.statusMessage!,
+                  style: const TextStyle(
+                    color: Color(0xFFB9C9F2),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ],
           ),
-          if (controller.statusMessage != null) ...<Widget>[
-            const SizedBox(height: 16),
-            Text(
-              controller.statusMessage!,
-              style: const TextStyle(color: Color(0xFFB9C9F2), fontSize: 13),
-            ),
-          ],
+        ),
       ],
     );
   }
@@ -161,24 +147,5 @@ class _ToolsScreenState extends State<ToolsScreen> {
         context,
       ).showSnackBar(SnackBar(content: Text(controller.statusMessage!)));
     }
-  }
-}
-
-class _TopIcon extends StatelessWidget {
-  const _TopIcon({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, color: Colors.white70, size: 18),
-    );
   }
 }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../widgets/file_tile.dart';
+import '../widgets/fixed_top_header.dart';
 import 'document_viewer_screen.dart';
 
 class FilesScreen extends StatefulWidget {
@@ -32,13 +33,12 @@ class _FilesScreenState extends State<FilesScreen>
 
     return Column(
       children: <Widget>[
+        const FixedTopHeader(title: 'Files'),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text('Files', style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 8),
               Text(
                 'Browse app storage and Downloads with file size and modified date.',
                 style: Theme.of(

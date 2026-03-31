@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import '../widgets/fixed_top_header.dart';
 import 'category_files_screen.dart';
 import 'document_viewer_screen.dart';
 
@@ -99,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final places = <_PlaceAction>[
       _PlaceAction(
-        title: 'Folder files',
+        title: 'Browse files',
         icon: Icons.folder_open_rounded,
         color: const Color(0xFF2F6FD6),
         onTap: () async {
@@ -141,11 +142,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Column(
       children: <Widget>[
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-          child: _HomeHeader(
-            showSearchAction: _searchCollapsed,
-            onSearchTap: _focusSearch,
+        FixedTopHeader(
+          title: 'Doc Reader',
+          trailing: IgnorePointer(
+            ignoring: !_searchCollapsed,
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 160),
+              opacity: _searchCollapsed ? 1 : 0,
+              child: IconButton(
+                onPressed: _focusSearch,
+                icon: const Icon(Icons.search_rounded, color: Colors.white70),
+              ),
+            ),
           ),
         ),
         Expanded(
@@ -319,60 +327,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _searchFocusNode.requestFocus();
       }
     });
-  }
-}
-
-class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({
-    required this.showSearchAction,
-    required this.onSearchTap,
-  });
-
-  final bool showSearchAction;
-  final VoidCallback onSearchTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 52,
-      color: const Color(0xFF0A0E1A),
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Expanded(
-            child: Text(
-              'Doc Reader',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 48,
-            height: 40,
-            child: Center(
-              child: IgnorePointer(
-                ignoring: !showSearchAction,
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 160),
-                  opacity: showSearchAction ? 1 : 0,
-                  child: IconButton(
-                    onPressed: onSearchTap,
-                    icon: const Icon(
-                      Icons.search_rounded,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
