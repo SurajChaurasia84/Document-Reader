@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'screens/splash_screen.dart';
 import 'screens/shell_screen.dart';
 import 'services/ai_service.dart';
 import 'services/app_controller.dart';
@@ -31,7 +32,7 @@ class DocReaderApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'PureDoc',
         theme: AppTheme.darkTheme,
-        home: const ShellScreen(),
+        home: const SplashScreen(child: ShellScreen()),
       ),
     );
   }
