@@ -23,6 +23,15 @@ class AppTheme {
       brightness: Brightness.dark,
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: _FastFadePageTransitionsBuilder(),
+          TargetPlatform.iOS: _FastFadePageTransitionsBuilder(),
+          TargetPlatform.macOS: _FastFadePageTransitionsBuilder(),
+          TargetPlatform.windows: _FastFadePageTransitionsBuilder(),
+          TargetPlatform.linux: _FastFadePageTransitionsBuilder(),
+        },
+      ),
       textTheme: GoogleFonts.spaceGroteskTextTheme(
         Typography.whiteMountainView,
       ).apply(bodyColor: Colors.white, displayColor: Colors.white),
@@ -49,6 +58,30 @@ class AppTheme {
         backgroundColor: cyan,
         foregroundColor: Colors.black,
       ),
+    );
+  }
+}
+
+class _FastFadePageTransitionsBuilder extends PageTransitionsBuilder {
+  const _FastFadePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curvedAnimation = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+
+    return FadeTransition(
+      opacity: Tween<double>(begin: 0.92, end: 1).animate(curvedAnimation),
+      child: child,
     );
   }
 }
