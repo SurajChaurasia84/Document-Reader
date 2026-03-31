@@ -22,64 +22,72 @@ class ShellScreen extends StatelessWidget {
       const SettingsScreen(),
     ];
 
-    return Scaffold(
-      extendBody: true,
-      body: SafeArea(
-        child: IndexedStack(index: controller.currentIndex, children: screens),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(builder: (_) => const ScannerScreen()),
-          );
-        },
-        icon: const Icon(Icons.document_scanner),
-        label: const Text('Scan'),
-      ),
-      bottomNavigationBar: Container(
-        color: AppTheme.surface,
-        padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-        child: SafeArea(
-          top: false,
-          child: Row(
-            children: <Widget>[
-              Expanded(
-                child: _BottomTabItem(
-                  icon: Icons.home_outlined,
-                  selectedIcon: Icons.home_rounded,
-                  label: 'Home',
-                  selected: controller.currentIndex == 0,
-                  onTap: () => controller.updateNavigation(0),
+    return PopScope(
+      canPop: controller.currentIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && controller.currentIndex != 0) {
+          controller.updateNavigation(0);
+        }
+      },
+      child: Scaffold(
+        extendBody: true,
+        body: SafeArea(
+          child: IndexedStack(index: controller.currentIndex, children: screens),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ScannerScreen()),
+            );
+          },
+          icon: const Icon(Icons.document_scanner),
+          label: const Text('Scan'),
+        ),
+        bottomNavigationBar: Container(
+          color: AppTheme.surface,
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+          child: SafeArea(
+            top: false,
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: _BottomTabItem(
+                    icon: Icons.home_outlined,
+                    selectedIcon: Icons.home_rounded,
+                    label: 'Home',
+                    selected: controller.currentIndex == 0,
+                    onTap: () => controller.updateNavigation(0),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: _BottomTabItem(
-                  icon: Icons.auto_fix_high_outlined,
-                  selectedIcon: Icons.auto_fix_high_rounded,
-                  label: 'Tools',
-                  selected: controller.currentIndex == 1,
-                  onTap: () => controller.updateNavigation(1),
+                Expanded(
+                  child: _BottomTabItem(
+                    icon: Icons.auto_fix_high_outlined,
+                    selectedIcon: Icons.auto_fix_high_rounded,
+                    label: 'Tools',
+                    selected: controller.currentIndex == 1,
+                    onTap: () => controller.updateNavigation(1),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: _BottomTabItem(
-                  icon: Icons.folder_outlined,
-                  selectedIcon: Icons.folder_rounded,
-                  label: 'Files',
-                  selected: controller.currentIndex == 2,
-                  onTap: () => controller.updateNavigation(2),
+                Expanded(
+                  child: _BottomTabItem(
+                    icon: Icons.folder_outlined,
+                    selectedIcon: Icons.folder_rounded,
+                    label: 'Files',
+                    selected: controller.currentIndex == 2,
+                    onTap: () => controller.updateNavigation(2),
+                  ),
                 ),
-              ),
-              Expanded(
-                child: _BottomTabItem(
-                  icon: Icons.settings_outlined,
-                  selectedIcon: Icons.settings,
-                  label: 'Settings',
-                  selected: controller.currentIndex == 3,
-                  onTap: () => controller.updateNavigation(3),
+                Expanded(
+                  child: _BottomTabItem(
+                    icon: Icons.settings_outlined,
+                    selectedIcon: Icons.settings,
+                    label: 'Settings',
+                    selected: controller.currentIndex == 3,
+                    onTap: () => controller.updateNavigation(3),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
