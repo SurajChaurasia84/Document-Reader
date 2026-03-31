@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import '../utils/formatters.dart';
 import '../widgets/fixed_top_header.dart';
 import 'category_files_screen.dart';
 import 'document_viewer_screen.dart';
+import 'my_files_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -116,9 +118,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: 'Favourites',
         icon: Icons.star_rounded,
         color: const Color(0xFF705AC7),
-        onTap: () {
-          _clearSearch();
-        },
+        onTap: () => _openFavorites(context, controller),
       ),
       _PlaceAction(
         title: 'Last Opened',
@@ -224,7 +224,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 18),
                 _SectionLabel(
                   title: _query.isEmpty ? 'Recent files' : 'Search results',
-                  trailing: '${filteredFiles.length} files',
+                  trailing: _query.isEmpty
+                      ? '${filteredFiles.length} files'
+                      : null,
+                  actionLabel: _query.isEmpty ? 'All files' : null,
+                  onActionTap: _query.isEmpty
+                      ? () => _openMyFilesScreen(context)
+                      : null,
                 ),
                 const SizedBox(height: 12),
                 if (filteredFiles.isEmpty)
@@ -296,6 +302,24 @@ class _HomeScreenState extends State<HomeScreen> {
             CategoryFilesScreen(title: category.title, files: category.files),
       ),
     );
+  }
+
+  void _openFavorites(BuildContext context, AppController controller) {
+    _clearSearch();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CategoryFilesScreen(
+          title: 'Favorites',
+          files: controller.favoriteFiles,
+        ),
+      ),
+    );
+  }
+
+  void _openMyFilesScreen(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const MyFilesScreen()));
   }
 
   void _handleScroll() {
@@ -383,10 +407,17 @@ class _SearchField extends StatelessWidget {
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.title, this.trailing});
+  const _SectionLabel({
+    required this.title,
+    this.trailing,
+    this.actionLabel,
+    this.onActionTap,
+  });
 
   final String title;
   final String? trailing;
+  final String? actionLabel;
+  final VoidCallback? onActionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -411,6 +442,20 @@ class _SectionLabel extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
+        if (actionLabel != null) ...<Widget>[
+          if (trailing != null) const SizedBox(width: 12),
+          GestureDetector(
+            onTap: onActionTap,
+            child: Text(
+              actionLabel!,
+              style: const TextStyle(
+                color: Color(0xFF2D87F3),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -584,7 +629,7 @@ class _RecentFileCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      file.path,
+                      '${file.extension.toUpperCase()}  •  ${formatFileSize(file.size)}  •  ${formatDate(file.modifiedAt)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

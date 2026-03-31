@@ -111,8 +111,18 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> toggleFavorite(AppFile file) async {
-    await storageService.setFavorite(file.path, !file.isFavorite);
-    await refreshAll();
+    final nextValue = !file.isFavorite;
+    _applyFavoriteState(file.path, nextValue);
+    notifyListeners();
+
+    try {
+      await storageService.setFavorite(file.path, nextValue);
+      await refreshAll();
+    } catch (_) {
+      _applyFavoriteState(file.path, file.isFavorite);
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<String?> mergePdfs() {
@@ -248,6 +258,47 @@ class AppController extends ChangeNotifier {
   void dispose() {
     unawaited(ocrService.dispose());
     super.dispose();
+  }
+
+  void _applyFavoriteState(String path, bool isFavorite) {
+    recentFiles = _updateFavoriteInList(recentFiles, path, isFavorite);
+    internalFiles = _updateFavoriteInList(internalFiles, path, isFavorite);
+    downloadFiles = _updateFavoriteInList(downloadFiles, path, isFavorite);
+    favoriteFiles = _rebuildFavoriteFiles();
+    if (lastOpenedFile?.path == path) {
+      lastOpenedFile = lastOpenedFile?.copyWith(isFavorite: isFavorite);
+    }
+  }
+
+  List<AppFile> _updateFavoriteInList(
+    List<AppFile> files,
+    String path,
+    bool isFavorite,
+  ) {
+    return files
+        .map(
+          (file) => file.path == path
+              ? file.copyWith(isFavorite: isFavorite)
+              : file,
+        )
+        .toList();
+  }
+
+  List<AppFile> _rebuildFavoriteFiles() {
+    final favorites = <String, AppFile>{};
+    for (final file in <AppFile>[
+      ...recentFiles,
+      ...internalFiles,
+      ...downloadFiles,
+    ]) {
+      if (file.isFavorite) {
+        favorites[file.path] = file.copyWith(isFavorite: true);
+      }
+    }
+
+    final files = favorites.values.toList()
+      ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    return files;
   }
 }
 

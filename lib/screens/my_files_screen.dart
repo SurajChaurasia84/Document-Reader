@@ -648,7 +648,7 @@ class _MyFileCard extends StatelessWidget {
                 icon: Icon(
                   file.isFavorite
                       ? Icons.star_rounded
-                      : Icons.more_vert_rounded,
+                      : Icons.star_border_rounded,
                   color: file.isFavorite
                       ? const Color(0xFFFFA73A)
                       : const Color(0xFF747A97),

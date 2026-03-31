@@ -61,7 +61,12 @@ class FileTile extends StatelessWidget {
           IconButton(
             onPressed: onFavoriteTap,
             icon: Icon(
-              file.isFavorite ? Icons.favorite : Icons.favorite_border,
+              file.isFavorite
+                  ? Icons.star_rounded
+                  : Icons.star_border_rounded,
+              color: file.isFavorite
+                  ? const Color(0xFFF3B63F)
+                  : Colors.white70,
             ),
           ),
         ],

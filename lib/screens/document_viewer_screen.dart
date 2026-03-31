@@ -45,7 +45,9 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           IconButton(
             onPressed: () => controller.toggleFavorite(widget.file),
             icon: Icon(
-              widget.file.isFavorite ? Icons.favorite : Icons.favorite_border,
+              widget.file.isFavorite
+                  ? Icons.star_rounded
+                  : Icons.star_border_rounded,
             ),
           ),
           IconButton(
