@@ -6,7 +6,6 @@ import '../services/app_controller.dart';
 import '../widgets/fixed_top_header.dart';
 import 'category_files_screen.dart';
 import 'document_viewer_screen.dart';
-import 'my_files_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _searchController = TextEditingController();
   String _query = '';
   bool _searchCollapsed = false;
 
@@ -32,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _scrollController
       ..removeListener(_handleScroll)
       ..dispose();
+    _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
   }
@@ -116,9 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.star_rounded,
         color: const Color(0xFF705AC7),
         onTap: () {
-          setState(() {
-            _query = '';
-          });
+          _clearSearch();
         },
       ),
       _PlaceAction(
@@ -168,6 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: <Widget>[
                 _SearchField(
                   query: _query,
+                  controller: _searchController,
                   focusNode: _searchFocusNode,
                   onChanged: (value) {
                     setState(() {
@@ -290,12 +290,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openCategory(BuildContext context, _HomeCategory category) {
-    if (category.title == 'All files') {
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const MyFilesScreen()));
-      return;
-    }
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) =>
@@ -325,16 +319,26 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
   }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+    setState(() {
+      _query = '';
+    });
+  }
 }
 
 class _SearchField extends StatelessWidget {
   const _SearchField({
     required this.query,
+    required this.controller,
     required this.focusNode,
     required this.onChanged,
   });
 
   final String query;
+  final TextEditingController controller;
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
 
@@ -345,10 +349,11 @@ class _SearchField extends StatelessWidget {
         color: const Color(0xFF22272E),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: TextField(
-        focusNode: focusNode,
-        onChanged: onChanged,
-        style: const TextStyle(color: Colors.white),
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          onChanged: onChanged,
+          style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: 'Search',
           hintStyle: const TextStyle(color: Color(0xFF96A0AE)),
@@ -356,13 +361,17 @@ class _SearchField extends StatelessWidget {
             Icons.search_rounded,
             color: Color(0xFF96A0AE),
           ),
-          suffixIcon: query.isEmpty
-              ? null
-              : IconButton(
-                  onPressed: () => onChanged(''),
-                  icon: const Icon(
-                    Icons.close_rounded,
-                    color: Color(0xFF96A0AE),
+            suffixIcon: query.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: () {
+                      controller.clear();
+                      focusNode.unfocus();
+                      onChanged('');
+                    },
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Color(0xFF96A0AE),
                   ),
                 ),
           border: InputBorder.none,

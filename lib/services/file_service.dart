@@ -10,10 +10,15 @@ import '../models/app_file.dart';
 class FileService {
   static const supportedExtensions = <String>[
     'pdf',
+    'doc',
     'docx',
+    'xls',
     'xlsx',
+    'ppt',
     'pptx',
     'txt',
+    'csv',
+    'rtf',
     'jpg',
     'jpeg',
     'png',
@@ -98,6 +103,20 @@ class FileService {
   Future<List<AppFile>> listInternalFiles({
     Set<String> favorites = const <String>{},
   }) async {
+    await ensureStoragePermissions();
+    if (Platform.isAndroid) {
+      final storageRoot = Directory('/storage/emulated/0');
+      return _listSupportedFiles(
+        storageRoot,
+        favorites: favorites,
+        excludedPaths: <String>{
+          '/storage/emulated/0/Download',
+          '/storage/emulated/0/Downloads',
+          '/storage/emulated/0/Android',
+        },
+      );
+    }
+
     final directory = await getApplicationDocumentsDirectory();
     return _listSupportedFiles(directory, favorites: favorites);
   }
@@ -126,27 +145,51 @@ class FileService {
   Future<List<AppFile>> _listSupportedFiles(
     Directory directory, {
     required Set<String> favorites,
+    Set<String> excludedPaths = const <String>{},
   }) async {
     if (!await directory.exists()) {
       return <AppFile>[];
     }
 
-    final entities =
-        directory
-            .listSync(recursive: true, followLinks: false)
-            .whereType<File>()
-            .where(
-              (file) => supportedExtensions.contains(
-                p.extension(file.path).replaceFirst('.', '').toLowerCase(),
-              ),
-            )
-            .toList()
-          ..sort(
-            (a, b) => b.statSync().modified.compareTo(a.statSync().modified),
-          );
+    final normalizedExclusions = excludedPaths
+        .map((path) => p.normalize(path).toLowerCase())
+        .toList();
+    final entities = <File>[];
+
+    try {
+      await for (final entity
+          in directory.list(recursive: true, followLinks: false)) {
+        if (entity is! File) {
+          continue;
+        }
+
+        final normalizedPath = p.normalize(entity.path).toLowerCase();
+        final isExcluded = normalizedExclusions.any(
+          (path) =>
+              normalizedPath == path ||
+              normalizedPath.startsWith('$path${Platform.pathSeparator}'),
+        );
+        if (isExcluded) {
+          continue;
+        }
+
+        final extension = p
+            .extension(entity.path)
+            .replaceFirst('.', '')
+            .toLowerCase();
+        if (!supportedExtensions.contains(extension)) {
+          continue;
+        }
+
+        entities.add(entity);
+      }
+    } on FileSystemException {
+      // Skip unreadable folders and return whatever could be scanned.
+    }
+
+    entities.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
 
     return entities
-        .take(50)
         .map(
           (file) => AppFile.fromFileSystemEntity(
             file,

@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../services/app_controller.dart';
 import '../utils/app_theme.dart';
-import 'files_screen.dart';
 import 'home_screen.dart';
+import 'my_files_screen.dart';
 import 'scanner_screen.dart';
 import 'settings_screen.dart';
 import 'tools_screen.dart';
@@ -18,7 +18,7 @@ class ShellScreen extends StatelessWidget {
     final screens = <Widget>[
       const HomeScreen(),
       const ToolsScreen(),
-      const FilesScreen(),
+      const MyFilesScreen(),
       const SettingsScreen(),
     ];
 
