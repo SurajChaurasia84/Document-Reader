@@ -165,24 +165,14 @@ class _HomeScreenState extends State<HomeScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
               children: <Widget>[
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOut,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    child: _searchCollapsed
-                        ? const SizedBox.shrink()
-                        : _SearchField(
-                            key: const ValueKey('expanded-search'),
-                            query: _query,
-                            focusNode: _searchFocusNode,
-                            onChanged: (value) {
-                              setState(() {
-                                _query = value.trim().toLowerCase();
-                              });
-                            },
-                          ),
-                  ),
+                _SearchField(
+                  query: _query,
+                  focusNode: _searchFocusNode,
+                  onChanged: (value) {
+                    setState(() {
+                      _query = value.trim().toLowerCase();
+                    });
+                  },
                 ),
                 const SizedBox(height: 18),
                 _SectionLabel(title: 'Categories'),
@@ -332,7 +322,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
 class _SearchField extends StatelessWidget {
   const _SearchField({
-    super.key,
     required this.query,
     required this.focusNode,
     required this.onChanged,
