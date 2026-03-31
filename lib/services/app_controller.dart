@@ -1,0 +1,297 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+
+import '../models/app_file.dart';
+import 'ai_service.dart';
+import 'billing_service.dart';
+import 'database_service.dart';
+import 'file_service.dart';
+import 'ocr_service.dart';
+import 'pdf_service.dart';
+import 'scanner_service.dart';
+import 'storage_service.dart';
+
+class AppController extends ChangeNotifier {
+  AppController({
+    required this.storageService,
+    required this.databaseService,
+    required this.fileService,
+    required this.pdfService,
+    required this.ocrService,
+    required this.aiService,
+    required this.scannerService,
+    required this.billingService,
+  });
+
+  final StorageService storageService;
+  final DatabaseService databaseService;
+  final FileService fileService;
+  final PdfService pdfService;
+  final OcrService ocrService;
+  final AiService aiService;
+  final ScannerService scannerService;
+  final BillingService billingService;
+
+  bool isInitialized = false;
+  bool isLoading = false;
+  int currentIndex = 0;
+  String? statusMessage;
+
+  List<AppFile> recentFiles = <AppFile>[];
+  List<AppFile> favoriteFiles = <AppFile>[];
+  List<AppFile> internalFiles = <AppFile>[];
+  List<AppFile> downloadFiles = <AppFile>[];
+  AppFile? lastOpenedFile;
+
+  bool get isPremium => billingService.isPremium;
+  String? get activePlanId => billingService.activePlanId;
+
+  Future<void> initialize() async {
+    await _runBusyTask(() async {
+      await storageService.init();
+      await databaseService.init();
+      await billingService.initialize(storageService);
+      await refreshAll();
+      isInitialized = true;
+    });
+  }
+
+  Future<void> refreshAll() async {
+    final favorites = await storageService.getFavorites();
+    recentFiles = (await databaseService.getRecentFiles())
+        .map((file) => file.copyWith(isFavorite: favorites.contains(file.path)))
+        .toList();
+    internalFiles = await fileService.listInternalFiles(favorites: favorites);
+    downloadFiles = await fileService.listDownloads(favorites: favorites);
+
+    favoriteFiles =
+        <AppFile>[...recentFiles, ...internalFiles, ...downloadFiles]
+            .where((file) => favorites.contains(file.path))
+            .fold<Map<String, AppFile>>(<String, AppFile>{}, (map, file) {
+              map[file.path] = file.copyWith(isFavorite: true);
+              return map;
+            })
+            .values
+            .toList()
+          ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+
+    final lastPath = await storageService.getLastOpenedPath();
+    final allFiles = <AppFile>[
+      ...recentFiles,
+      ...favoriteFiles,
+      ...internalFiles,
+      ...downloadFiles,
+    ];
+    lastOpenedFile = allFiles.firstWhereOrNull((file) => file.path == lastPath);
+    if (lastOpenedFile == null &&
+        lastPath != null &&
+        await File(lastPath).exists()) {
+      lastOpenedFile = AppFile.fromFileSystemEntity(
+        File(lastPath),
+        isFavorite: favorites.contains(lastPath),
+      );
+    }
+    notifyListeners();
+  }
+
+  void updateNavigation(int index) {
+    currentIndex = index;
+    notifyListeners();
+  }
+
+  Future<AppFile?> pickDocument() async {
+    final file = await fileService.pickSingleDocument();
+    if (file == null) {
+      return null;
+    }
+    await openFile(file);
+    return file;
+  }
+
+  Future<void> openFile(AppFile file) async {
+    await databaseService.upsertRecentFile(file);
+    await storageService.setLastOpenedPath(file.path);
+    await refreshAll();
+  }
+
+  Future<void> toggleFavorite(AppFile file) async {
+    await storageService.setFavorite(file.path, !file.isFavorite);
+    await refreshAll();
+  }
+
+  Future<void> restorePurchases() async {
+    await _runBusyTask(() async {
+      await billingService.restorePurchases(storageService);
+      await refreshAll();
+    });
+  }
+
+  Future<void> purchasePlan(String planId) async {
+    await _runBusyTask(() async {
+      await billingService.buyPlan(planId, storageService);
+      await refreshAll();
+      statusMessage = isPremium
+          ? 'Premium unlocked successfully.'
+          : 'Purchase started.';
+    });
+  }
+
+  Future<String?> mergePdfs() {
+    return _runBusyTask(() async {
+      final files = await fileService.pickPdfFiles(allowMultiple: true);
+      if (files.length < 2) {
+        throw Exception('Pick at least two PDF files to merge.');
+      }
+      final output = await pdfService.mergePdfs(files);
+      statusMessage = 'Merged PDF saved to $output';
+      return output;
+    });
+  }
+
+  Future<List<String>?> splitPdf() {
+    return _runBusyTask(() async {
+      final files = await fileService.pickPdfFiles(allowMultiple: false);
+      if (files.isEmpty) {
+        throw Exception('Pick a PDF to split.');
+      }
+      final output = await pdfService.splitPdf(files.first);
+      statusMessage = 'Created ${output.length} split files.';
+      return output;
+    });
+  }
+
+  Future<String?> imageToPdf() {
+    return _runBusyTask(() async {
+      final files = await fileService.pickImageFiles(allowMultiple: true);
+      if (files.isEmpty) {
+        throw Exception('Pick one or more images.');
+      }
+      final output = await pdfService.imageToPdf(files);
+      statusMessage = 'Image PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<List<String>?> pdfToImages() {
+    return _runBusyTask(() async {
+      final files = await fileService.pickPdfFiles(allowMultiple: false);
+      if (files.isEmpty) {
+        throw Exception('Pick a PDF to convert.');
+      }
+      final output = await pdfService.pdfToImages(files.first);
+      statusMessage = 'Exported ${output.length} images.';
+      return output;
+    });
+  }
+
+  Future<String?> compressPdf() {
+    return _runBusyTask(() async {
+      final files = await fileService.pickPdfFiles(allowMultiple: false);
+      if (files.isEmpty) {
+        throw Exception('Pick a PDF to compress.');
+      }
+      final output = await pdfService.compressPdf(files.first);
+      statusMessage = 'Compressed PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> runOcrForFile(AppFile file) {
+    return _runBusyTask(() async {
+      if (!isPremium) {
+        throw Exception('OCR PDF is available for premium users.');
+      }
+      if (file.isPdf) {
+        return ocrService.recognizePdf(file.path, pdfService);
+      }
+      if (file.isImage) {
+        return ocrService.recognizeFromImage(file.path);
+      }
+      if (file.isText) {
+        return fileService.readTextFile(file.path);
+      }
+      throw Exception('OCR supports PDF and image files in this MVP.');
+    });
+  }
+
+  Future<String?> summarizeFile(AppFile file) {
+    return _runBusyTask(() async {
+      if (!isPremium) {
+        throw Exception('AI summarizer is available for premium users.');
+      }
+      final cached = await storageService.getCachedSummaries();
+      final existing = cached[file.path];
+      if (existing != null) {
+        return existing;
+      }
+      final source = file.isText
+          ? await fileService.readTextFile(file.path)
+          : await runOcrForFile(file) ?? '';
+      final summary = await aiService.summarizeText(source);
+      await storageService.cacheSummary(file.path, summary);
+      return summary;
+    });
+  }
+
+  Future<String?> translateFile(
+    AppFile file, {
+    String targetLanguage = 'Hindi',
+  }) {
+    return _runBusyTask(() async {
+      if (!isPremium) {
+        throw Exception('Translate is available for premium users.');
+      }
+      final source = file.isText
+          ? await fileService.readTextFile(file.path)
+          : await runOcrForFile(file) ?? '';
+      return aiService.translateText(source, targetLanguage: targetLanguage);
+    });
+  }
+
+  Future<void> openExternally(String path) async {
+    await OpenFilex.open(path);
+  }
+
+  void setStatus(String? message) {
+    statusMessage = message;
+    notifyListeners();
+  }
+
+  Future<T?> _runBusyTask<T>(Future<T> Function() action) async {
+    try {
+      isLoading = true;
+      statusMessage = null;
+      notifyListeners();
+      return await action();
+    } catch (error) {
+      statusMessage = error.toString().replaceFirst('Exception: ', '');
+      return null;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    unawaited(ocrService.dispose());
+    unawaited(billingService.dispose());
+    super.dispose();
+  }
+}
+
+extension<T> on List<T> {
+  T? firstWhereOrNull(bool Function(T value) test) {
+    for (final value in this) {
+      if (test(value)) {
+        return value;
+      }
+    }
+    return null;
+  }
+}
