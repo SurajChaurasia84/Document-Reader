@@ -32,7 +32,10 @@ class ShellScreen extends StatelessWidget {
       child: Scaffold(
         extendBody: true,
         body: SafeArea(
-          child: IndexedStack(index: controller.currentIndex, children: screens),
+          child: IndexedStack(
+            index: controller.currentIndex,
+            children: screens,
+          ),
         ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {

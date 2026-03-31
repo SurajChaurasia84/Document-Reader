@@ -14,7 +14,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _searchFocusNode = FocusNode();
   String _query = '';
+  bool _searchCollapsed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_handleScroll)
+      ..dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -123,9 +141,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Column(
       children: <Widget>[
-        const Padding(
-          padding: EdgeInsets.fromLTRB(12, 10, 12, 0),
-          child: _HomeHeader(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+          child: _HomeHeader(
+            showSearchAction: _searchCollapsed,
+            onSearchTap: _focusSearch,
+          ),
         ),
         Expanded(
           child: RefreshIndicator(
@@ -133,15 +154,27 @@ class _HomeScreenState extends State<HomeScreen> {
             color: const Color(0xFFF3B63F),
             backgroundColor: const Color(0xFF1E232A),
             child: ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
               children: <Widget>[
-                _SearchField(
-                  query: _query,
-                  onChanged: (value) {
-                    setState(() {
-                      _query = value.trim().toLowerCase();
-                    });
-                  },
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOut,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 180),
+                    child: _searchCollapsed
+                        ? const SizedBox.shrink()
+                        : _SearchField(
+                            key: const ValueKey('expanded-search'),
+                            query: _query,
+                            focusNode: _searchFocusNode,
+                            onChanged: (value) {
+                              setState(() {
+                                _query = value.trim().toLowerCase();
+                              });
+                            },
+                          ),
+                  ),
                 ),
                 const SizedBox(height: 18),
                 _SectionLabel(title: 'Categories'),
@@ -163,7 +196,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemBuilder: (context, index) {
                         return _CategoryCard(
                           category: categories[index],
-                          onTap: () => _openCategory(context, categories[index]),
+                          onTap: () =>
+                              _openCategory(context, categories[index]),
                         );
                       },
                     );
@@ -180,8 +214,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 10,
                     crossAxisSpacing: 10,
-                    mainAxisExtent:
-                        MediaQuery.of(context).size.width < 360 ? 78 : 72,
+                    mainAxisExtent: MediaQuery.of(context).size.width < 360
+                        ? 78
+                        : 72,
                   ),
                   itemBuilder: (context, index) {
                     return _PlaceCard(action: places[index]);
@@ -196,16 +231,19 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (filteredFiles.isEmpty)
                   const _EmptyFilesCard()
                 else
-                  ...filteredFiles.take(8).map(
-                    (file) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _RecentFileCard(
-                        file: file,
-                        onTap: () => _openViewer(context, file),
-                        onFavoriteTap: () => controller.toggleFavorite(file),
+                  ...filteredFiles
+                      .take(8)
+                      .map(
+                        (file) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _RecentFileCard(
+                            file: file,
+                            onTap: () => _openViewer(context, file),
+                            onFavoriteTap: () =>
+                                controller.toggleFavorite(file),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
                 if (controller.statusMessage != null) ...<Widget>[
                   const SizedBox(height: 12),
                   Text(
@@ -260,32 +298,94 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  void _handleScroll() {
+    final shouldCollapse = _scrollController.offset > 24;
+    if (shouldCollapse != _searchCollapsed && mounted) {
+      setState(() {
+        _searchCollapsed = shouldCollapse;
+      });
+    }
+  }
+
+  void _focusSearch() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+    Future<void>.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+  }
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader();
+  const _HomeHeader({
+    required this.showSearchAction,
+    required this.onSearchTap,
+  });
+
+  final bool showSearchAction;
+  final VoidCallback onSearchTap;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      height: 52,
       color: const Color(0xFF0A0E1A),
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        'Doc Reader',
-        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: <Widget>[
+          Expanded(
+            child: Text(
+              'Doc Reader',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 48,
+            height: 40,
+            child: Center(
+              child: IgnorePointer(
+                ignoring: !showSearchAction,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 160),
+                  opacity: showSearchAction ? 1 : 0,
+                  child: IconButton(
+                    onPressed: onSearchTap,
+                    icon: const Icon(
+                      Icons.search_rounded,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _SearchField extends StatelessWidget {
-  const _SearchField({required this.query, required this.onChanged});
+  const _SearchField({
+    super.key,
+    required this.query,
+    required this.focusNode,
+    required this.onChanged,
+  });
 
   final String query;
+  final FocusNode focusNode;
   final ValueChanged<String> onChanged;
 
   @override
@@ -296,6 +396,7 @@ class _SearchField extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       child: TextField(
+        focusNode: focusNode,
         onChanged: onChanged,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
