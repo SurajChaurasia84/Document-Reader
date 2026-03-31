@@ -250,7 +250,7 @@ class _HomeHeader extends StatelessWidget {
       children: <Widget>[
         Expanded(
           child: Text(
-            'Document Viewer',
+            'Doc Reader',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: Colors.white,
