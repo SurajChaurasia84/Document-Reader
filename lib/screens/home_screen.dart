@@ -121,103 +121,107 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
 
-    return RefreshIndicator(
-      onRefresh: controller.refreshAll,
-      color: const Color(0xFFF3B63F),
-      backgroundColor: const Color(0xFF1E232A),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 120),
-        children: <Widget>[
-          _HomeHeader(
-            onSettingsTap: () => controller.updateNavigation(3),
-            onMoreTap: () => controller.refreshAll(),
-          ),
-          const SizedBox(height: 16),
-          _SearchField(
-            query: _query,
-            onChanged: (value) {
-              setState(() {
-                _query = value.trim().toLowerCase();
-              });
-            },
-          ),
-          const SizedBox(height: 18),
-          _SectionLabel(title: 'Categories'),
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final maxWidth = constraints.maxWidth;
-              final crossAxisCount = maxWidth < 280 ? 1 : 2;
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: categories.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  mainAxisExtent: maxWidth < 360 ? 78 : 72,
+    return Column(
+      children: <Widget>[
+        const Padding(
+          padding: EdgeInsets.fromLTRB(12, 10, 12, 0),
+          child: _HomeHeader(),
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: controller.refreshAll,
+            color: const Color(0xFFF3B63F),
+            backgroundColor: const Color(0xFF1E232A),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(12, 16, 12, 120),
+              children: <Widget>[
+                _SearchField(
+                  query: _query,
+                  onChanged: (value) {
+                    setState(() {
+                      _query = value.trim().toLowerCase();
+                    });
+                  },
                 ),
-                itemBuilder: (context, index) {
-                  return _CategoryCard(
-                    category: categories[index],
-                    onTap: () => _openCategory(context, categories[index]),
-                  );
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 18),
-          _SectionLabel(title: 'Places'),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: places.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              mainAxisExtent: MediaQuery.of(context).size.width < 360 ? 78 : 72,
-            ),
-            itemBuilder: (context, index) {
-              return _PlaceCard(action: places[index]);
-            },
-          ),
-          const SizedBox(height: 18),
-          _SectionLabel(
-            title: _query.isEmpty ? 'Recent files' : 'Search results',
-            trailing: '${filteredFiles.length} files',
-          ),
-          const SizedBox(height: 12),
-          if (filteredFiles.isEmpty)
-            const _EmptyFilesCard()
-          else
-            ...filteredFiles
-                .take(8)
-                .map(
-                  (file) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _RecentFileCard(
-                      file: file,
-                      onTap: () => _openViewer(context, file),
-                      onFavoriteTap: () => controller.toggleFavorite(file),
+                const SizedBox(height: 18),
+                _SectionLabel(title: 'Categories'),
+                const SizedBox(height: 12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final maxWidth = constraints.maxWidth;
+                    final crossAxisCount = maxWidth < 280 ? 1 : 2;
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: categories.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        mainAxisExtent: maxWidth < 360 ? 78 : 72,
+                      ),
+                      itemBuilder: (context, index) {
+                        return _CategoryCard(
+                          category: categories[index],
+                          onTap: () => _openCategory(context, categories[index]),
+                        );
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 18),
+                _SectionLabel(title: 'Places'),
+                const SizedBox(height: 12),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: places.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    mainAxisExtent:
+                        MediaQuery.of(context).size.width < 360 ? 78 : 72,
+                  ),
+                  itemBuilder: (context, index) {
+                    return _PlaceCard(action: places[index]);
+                  },
+                ),
+                const SizedBox(height: 18),
+                _SectionLabel(
+                  title: _query.isEmpty ? 'Recent files' : 'Search results',
+                  trailing: '${filteredFiles.length} files',
+                ),
+                const SizedBox(height: 12),
+                if (filteredFiles.isEmpty)
+                  const _EmptyFilesCard()
+                else
+                  ...filteredFiles.take(8).map(
+                    (file) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _RecentFileCard(
+                        file: file,
+                        onTap: () => _openViewer(context, file),
+                        onFavoriteTap: () => controller.toggleFavorite(file),
+                      ),
                     ),
                   ),
-                ),
-          if (controller.statusMessage != null) ...<Widget>[
-            const SizedBox(height: 12),
-            Text(
-              controller.statusMessage!,
-              style: const TextStyle(
-                color: Color(0xFFF3B63F),
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+                if (controller.statusMessage != null) ...<Widget>[
+                  const SizedBox(height: 12),
+                  Text(
+                    controller.statusMessage!,
+                    style: const TextStyle(
+                      color: Color(0xFFF3B63F),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
             ),
-          ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -259,60 +263,20 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.onSettingsTap, required this.onMoreTap});
-
-  final VoidCallback onSettingsTap;
-  final VoidCallback onMoreTap;
+  const _HomeHeader();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: <Widget>[
-        Expanded(
-          child: Text(
-            'Doc Reader',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFF0A0E1A),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        'Doc Reader',
+        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
         ),
-        _HeaderIconButton(
-          icon: Icons.settings_outlined,
-          iconColor: Colors.white70,
-          onTap: onSettingsTap,
-        ),
-        const SizedBox(width: 8),
-        _HeaderIconButton(
-          icon: Icons.more_vert_rounded,
-          iconColor: Colors.white70,
-          onTap: onMoreTap,
-        ),
-      ],
-    );
-  }
-}
-
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.icon,
-    required this.iconColor,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: SizedBox(
-        width: 36,
-        height: 36,
-        child: Icon(icon, color: iconColor, size: 22),
       ),
     );
   }
