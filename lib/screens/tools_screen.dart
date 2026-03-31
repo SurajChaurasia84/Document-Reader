@@ -29,21 +29,9 @@ class _ToolsScreenState extends State<ToolsScreen> {
           tool.description.toLowerCase().contains(q);
     }).toList();
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: <Color>[
-            Color(0xFF0E1B3B),
-            Color(0xFF101B34),
-            Color(0xFF0A1227),
-          ],
-        ),
-      ),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 140),
-        children: <Widget>[
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 140),
+      children: <Widget>[
           Row(
             children: <Widget>[
               Text(
@@ -127,8 +115,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
               style: const TextStyle(color: Color(0xFFB9C9F2), fontSize: 13),
             ),
           ],
-        ],
-      ),
+      ],
     );
   }
 
