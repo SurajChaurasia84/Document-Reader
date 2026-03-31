@@ -64,35 +64,29 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               runSpacing: 12,
               children: <Widget>[
                 FilledButton.icon(
-                  onPressed: controller.isPremium
-                      ? () => _showTextDialog(
-                          context,
-                          'OCR Result',
-                          () => controller.runOcrForFile(widget.file),
-                        )
-                      : null,
+                  onPressed: () => _showTextDialog(
+                    context,
+                    'OCR Result',
+                    () => controller.runOcrForFile(widget.file),
+                  ),
                   icon: const Icon(Icons.text_snippet_outlined),
                   label: const Text('OCR'),
                 ),
                 FilledButton.icon(
-                  onPressed: controller.isPremium
-                      ? () => _showTextDialog(
-                          context,
-                          'AI Summary',
-                          () => controller.summarizeFile(widget.file),
-                        )
-                      : null,
+                  onPressed: () => _showTextDialog(
+                    context,
+                    'AI Summary',
+                    () => controller.summarizeFile(widget.file),
+                  ),
                   icon: const Icon(Icons.auto_awesome),
                   label: const Text('Summarize'),
                 ),
                 FilledButton.icon(
-                  onPressed: controller.isPremium
-                      ? () => _showTextDialog(
-                          context,
-                          'Translation',
-                          () => controller.translateFile(widget.file),
-                        )
-                      : null,
+                  onPressed: () => _showTextDialog(
+                    context,
+                    'Translation',
+                    () => controller.translateFile(widget.file),
+                  ),
                   icon: const Icon(Icons.translate),
                   label: const Text('Translate'),
                 ),

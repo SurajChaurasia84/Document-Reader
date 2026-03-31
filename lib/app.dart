@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'screens/shell_screen.dart';
 import 'services/ai_service.dart';
 import 'services/app_controller.dart';
-import 'services/billing_service.dart';
 import 'services/database_service.dart';
 import 'services/file_service.dart';
 import 'services/ocr_service.dart';
@@ -27,7 +26,6 @@ class DocReaderApp extends StatelessWidget {
         ocrService: OcrService(),
         aiService: AiService(),
         scannerService: ScannerService(),
-        billingService: BillingService(),
       )..initialize(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

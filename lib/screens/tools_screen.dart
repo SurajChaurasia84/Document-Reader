@@ -12,7 +12,7 @@ class ToolsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
-    final tools = <ToolAction>[...coreTools, ...premiumTools];
+    final tools = <ToolAction>[...coreTools, ...advancedTools];
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
@@ -75,14 +75,6 @@ class ToolsScreen extends StatelessWidget {
     AppController controller,
     ToolAction tool,
   ) async {
-    if (tool.isPremium && !controller.isPremium) {
-      _showSnack(
-        context,
-        '${tool.title} is locked. Upgrade to Premium to unlock it.',
-      );
-      return;
-    }
-
     switch (tool.id) {
       case 'merge_pdf':
         await controller.mergePdfs();
@@ -99,10 +91,19 @@ class ToolsScreen extends StatelessWidget {
       case 'compress_pdf':
         await controller.compressPdf();
         break;
-      default:
+      case 'ocr_pdf':
+        controller.setStatus('Open a file to run OCR from the viewer screen.');
+        break;
+      case 'ai_summarizer':
         controller.setStatus(
-          '${tool.title} is available in the premium experience.',
+          'Open a file to summarize it from the viewer screen.',
         );
+        break;
+      case 'translate':
+        controller.setStatus('Open a file to translate it from the viewer.');
+        break;
+      default:
+        controller.setStatus('${tool.title} is coming in a later update.');
         break;
     }
 

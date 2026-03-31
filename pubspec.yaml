@@ -1,5 +1,5 @@
 name: doc_reader
-description: "Offline-first document reader, PDF toolkit, scanner, OCR, AI, and premium flows."
+description: "Offline-first document reader, PDF toolkit, scanner, OCR, and AI tools."
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -24,7 +24,6 @@ dependencies:
   camera: ^0.11.2
   edge_detection:
     path: third_party/edge_detection
-  in_app_purchase: ^3.2.3
   open_filex: ^4.7.0
   google_fonts: ^6.3.1
 

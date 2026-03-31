@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/app_file.dart';
 import '../utils/formatters.dart';
 import 'glass_card.dart';
-import 'premium_badge.dart';
 
 class FileTile extends StatelessWidget {
   const FileTile({
@@ -11,13 +10,11 @@ class FileTile extends StatelessWidget {
     required this.file,
     required this.onTap,
     required this.onFavoriteTap,
-    this.showPremium = false,
   });
 
   final AppFile file;
   final VoidCallback onTap;
   final VoidCallback onFavoriteTap;
-  final bool showPremium;
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +50,7 @@ class FileTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${formatFileSize(file.size)}  •  ${formatDate(file.modifiedAt)}',
+                  '${formatFileSize(file.size)}  |  ${formatDate(file.modifiedAt)}',
                   style: Theme.of(
                     context,
                   ).textTheme.bodySmall?.copyWith(color: Colors.white70),
@@ -61,10 +58,6 @@ class FileTile extends StatelessWidget {
               ],
             ),
           ),
-          if (showPremium) ...<Widget>[
-            const PremiumBadge(),
-            const SizedBox(width: 8),
-          ],
           IconButton(
             onPressed: onFavoriteTap,
             icon: Icon(

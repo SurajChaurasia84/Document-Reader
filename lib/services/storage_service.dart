@@ -5,8 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class StorageService {
   static const _favoritesKey = 'favorite_paths';
   static const _lastOpenedPathKey = 'last_opened_path';
-  static const _premiumKey = 'premium_enabled';
-  static const _activePlanKey = 'active_plan';
   static const _cachedSummaryKey = 'cached_summary';
 
   SharedPreferences? _prefs;
@@ -38,24 +36,6 @@ class StorageService {
   Future<void> setLastOpenedPath(String path) async {
     await init();
     await _prefs!.setString(_lastOpenedPathKey, path);
-  }
-
-  Future<bool> getPremiumStatus() async {
-    await init();
-    return _prefs!.getBool(_premiumKey) ?? false;
-  }
-
-  Future<void> setPremiumStatus(bool value, {String? planId}) async {
-    await init();
-    await _prefs!.setBool(_premiumKey, value);
-    if (planId != null) {
-      await _prefs!.setString(_activePlanKey, planId);
-    }
-  }
-
-  Future<String?> getActivePlan() async {
-    await init();
-    return _prefs!.getString(_activePlanKey);
   }
 
   Future<Map<String, String>> getCachedSummaries() async {

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/tool_action.dart';
 import 'glass_card.dart';
-import 'premium_badge.dart';
 
 class ToolTile extends StatelessWidget {
   const ToolTile({super.key, required this.tool, required this.onTap});
@@ -17,13 +16,7 @@ class ToolTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(IconData(tool.icon, fontFamily: 'MaterialIcons')),
-              const Spacer(),
-              if (tool.isPremium) const PremiumBadge(),
-            ],
-          ),
+          Icon(IconData(tool.icon, fontFamily: 'MaterialIcons')),
           const SizedBox(height: 20),
           Text(tool.title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import 'category_files_screen.dart';
 import 'document_viewer_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -30,42 +31,49 @@ class _HomeScreenState extends State<HomeScreen> {
       _HomeCategory(
         title: 'All files',
         count: allFiles.length,
+        files: allFiles,
         icon: Icons.grid_view_rounded,
         color: const Color(0xFF2D87F3),
       ),
       _HomeCategory(
         title: 'PDF files',
         count: allFiles.where((file) => file.extension == 'pdf').length,
+        files: allFiles.where((file) => file.extension == 'pdf').toList(),
         icon: Icons.picture_as_pdf_rounded,
         color: const Color(0xFFD93025),
       ),
       _HomeCategory(
         title: 'Word files',
         count: allFiles.where((file) => file.extension == 'docx').length,
+        files: allFiles.where((file) => file.extension == 'docx').toList(),
         icon: Icons.description_rounded,
         color: const Color(0xFF2F6FD6),
       ),
       _HomeCategory(
         title: 'Excel files',
         count: allFiles.where((file) => file.extension == 'xlsx').length,
+        files: allFiles.where((file) => file.extension == 'xlsx').toList(),
         icon: Icons.table_chart_rounded,
         color: const Color(0xFF16A34A),
       ),
       _HomeCategory(
         title: 'PPT files',
         count: allFiles.where((file) => file.extension == 'pptx').length,
+        files: allFiles.where((file) => file.extension == 'pptx').toList(),
         icon: Icons.slideshow_rounded,
         color: const Color(0xFFE9742B),
       ),
       _HomeCategory(
         title: 'TXT files',
         count: allFiles.where((file) => file.extension == 'txt').length,
+        files: allFiles.where((file) => file.extension == 'txt').toList(),
         icon: Icons.article_rounded,
         color: const Color(0xFF586274),
       ),
       _HomeCategory(
         title: 'Archive files',
         count: controller.internalFiles.length,
+        files: controller.internalFiles,
         icon: Icons.inventory_2_rounded,
         color: const Color(0xFFB1B7C3),
       ),
@@ -121,7 +129,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 120),
         children: <Widget>[
           _HomeHeader(
-            onPremiumTap: () => controller.updateNavigation(3),
+            onSettingsTap: () => controller.updateNavigation(3),
             onMoreTap: () => controller.refreshAll(),
           ),
           const SizedBox(height: 16),
@@ -151,7 +159,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisExtent: maxWidth < 360 ? 78 : 72,
                 ),
                 itemBuilder: (context, index) {
-                  return _CategoryCard(category: categories[index]);
+                  return _CategoryCard(
+                    category: categories[index],
+                    onTap: () => _openCategory(context, categories[index]),
+                  );
                 },
               );
             },
@@ -236,12 +247,21 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)),
     );
   }
+
+  void _openCategory(BuildContext context, _HomeCategory category) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            CategoryFilesScreen(title: category.title, files: category.files),
+      ),
+    );
+  }
 }
 
 class _HomeHeader extends StatelessWidget {
-  const _HomeHeader({required this.onPremiumTap, required this.onMoreTap});
+  const _HomeHeader({required this.onSettingsTap, required this.onMoreTap});
 
-  final VoidCallback onPremiumTap;
+  final VoidCallback onSettingsTap;
   final VoidCallback onMoreTap;
 
   @override
@@ -258,9 +278,9 @@ class _HomeHeader extends StatelessWidget {
           ),
         ),
         _HeaderIconButton(
-          icon: Icons.workspace_premium_rounded,
-          iconColor: const Color(0xFFF3B63F),
-          onTap: onPremiumTap,
+          icon: Icons.settings_outlined,
+          iconColor: Colors.white70,
+          onTap: onSettingsTap,
         ),
         const SizedBox(width: 8),
         _HeaderIconButton(
@@ -373,59 +393,64 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _CategoryCard extends StatelessWidget {
-  const _CategoryCard({required this.category});
+  const _CategoryCard({required this.category, required this.onTap});
 
   final _HomeCategory category;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E232A),
+    return Material(
+      color: const Color(0xFF1E232A),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: category.color,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(category.icon, color: Colors.white, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  category.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: category.color,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${category.count} files',
-                  style: const TextStyle(
-                    color: Color(0xFF96A0AE),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Icon(category.icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      category.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${category.count} files',
+                      style: const TextStyle(
+                        color: Color(0xFF96A0AE),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -605,12 +630,14 @@ class _HomeCategory {
   const _HomeCategory({
     required this.title,
     required this.count,
+    required this.files,
     required this.icon,
     required this.color,
   });
 
   final String title;
   final int count;
+  final List<AppFile> files;
   final IconData icon;
   final Color color;
 }

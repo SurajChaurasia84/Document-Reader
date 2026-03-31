@@ -6,7 +6,6 @@ import 'package:open_filex/open_filex.dart';
 
 import '../models/app_file.dart';
 import 'ai_service.dart';
-import 'billing_service.dart';
 import 'database_service.dart';
 import 'file_service.dart';
 import 'ocr_service.dart';
@@ -23,7 +22,6 @@ class AppController extends ChangeNotifier {
     required this.ocrService,
     required this.aiService,
     required this.scannerService,
-    required this.billingService,
   });
 
   final StorageService storageService;
@@ -33,7 +31,6 @@ class AppController extends ChangeNotifier {
   final OcrService ocrService;
   final AiService aiService;
   final ScannerService scannerService;
-  final BillingService billingService;
 
   bool isInitialized = false;
   bool isLoading = false;
@@ -46,14 +43,10 @@ class AppController extends ChangeNotifier {
   List<AppFile> downloadFiles = <AppFile>[];
   AppFile? lastOpenedFile;
 
-  bool get isPremium => billingService.isPremium;
-  String? get activePlanId => billingService.activePlanId;
-
   Future<void> initialize() async {
     await _runBusyTask(() async {
       await storageService.init();
       await databaseService.init();
-      await billingService.initialize(storageService);
       await refreshAll();
       isInitialized = true;
     });
@@ -122,23 +115,6 @@ class AppController extends ChangeNotifier {
     await refreshAll();
   }
 
-  Future<void> restorePurchases() async {
-    await _runBusyTask(() async {
-      await billingService.restorePurchases(storageService);
-      await refreshAll();
-    });
-  }
-
-  Future<void> purchasePlan(String planId) async {
-    await _runBusyTask(() async {
-      await billingService.buyPlan(planId, storageService);
-      await refreshAll();
-      statusMessage = isPremium
-          ? 'Premium unlocked successfully.'
-          : 'Purchase started.';
-    });
-  }
-
   Future<String?> mergePdfs() {
     return _runBusyTask(() async {
       final files = await fileService.pickPdfFiles(allowMultiple: true);
@@ -203,9 +179,6 @@ class AppController extends ChangeNotifier {
 
   Future<String?> runOcrForFile(AppFile file) {
     return _runBusyTask(() async {
-      if (!isPremium) {
-        throw Exception('OCR PDF is available for premium users.');
-      }
       if (file.isPdf) {
         return ocrService.recognizePdf(file.path, pdfService);
       }
@@ -221,9 +194,6 @@ class AppController extends ChangeNotifier {
 
   Future<String?> summarizeFile(AppFile file) {
     return _runBusyTask(() async {
-      if (!isPremium) {
-        throw Exception('AI summarizer is available for premium users.');
-      }
       final cached = await storageService.getCachedSummaries();
       final existing = cached[file.path];
       if (existing != null) {
@@ -243,9 +213,6 @@ class AppController extends ChangeNotifier {
     String targetLanguage = 'Hindi',
   }) {
     return _runBusyTask(() async {
-      if (!isPremium) {
-        throw Exception('Translate is available for premium users.');
-      }
       final source = file.isText
           ? await fileService.readTextFile(file.path)
           : await runOcrForFile(file) ?? '';
@@ -280,7 +247,6 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     unawaited(ocrService.dispose());
-    unawaited(billingService.dispose());
     super.dispose();
   }
 }
