@@ -8,6 +8,7 @@ import '../models/app_file.dart';
 import 'ai_service.dart';
 import 'database_service.dart';
 import 'file_service.dart';
+import 'office_service.dart';
 import 'ocr_service.dart';
 import 'pdf_service.dart';
 import 'scanner_service.dart';
@@ -19,6 +20,7 @@ class AppController extends ChangeNotifier {
     required this.databaseService,
     required this.fileService,
     required this.pdfService,
+    required this.officeService,
     required this.ocrService,
     required this.aiService,
     required this.scannerService,
@@ -28,6 +30,7 @@ class AppController extends ChangeNotifier {
   final DatabaseService databaseService;
   final FileService fileService;
   final PdfService pdfService;
+  final OfficeService officeService;
   final OcrService ocrService;
   final AiService aiService;
   final ScannerService scannerService;
@@ -151,6 +154,24 @@ class AppController extends ChangeNotifier {
     });
   }
 
+  Future<String?> mergePdfsFromPaths(
+    List<String> paths, {
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      if (paths.length < 2) {
+        throw Exception('Pick at least two PDF files to merge.');
+      }
+      final output = await pdfService.mergePdfs(
+        paths,
+        outputFileName: outputFileName,
+      );
+      statusMessage = 'Merged PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
   Future<List<String>?> splitPdf() {
     return _runBusyTask(() async {
       final files = await fileService.pickPdfFiles(allowMultiple: false);
@@ -159,6 +180,26 @@ class AppController extends ChangeNotifier {
       }
       final output = await pdfService.splitPdf(files.first);
       statusMessage = 'Created ${output.length} split files.';
+      return output;
+    });
+  }
+
+  Future<List<String>?> splitPdfPages(
+    String inputPath,
+    List<int> pageNumbers, {
+    String? outputPrefix,
+  }) {
+    return _runBusyTask(() async {
+      if (pageNumbers.isEmpty) {
+        throw Exception('Select at least one page to split.');
+      }
+      final output = await pdfService.splitPdfPages(
+        inputPath,
+        pageNumbers,
+        outputPrefix: outputPrefix,
+      );
+      statusMessage = 'Created ${output.length} split files.';
+      await refreshAll();
       return output;
     });
   }
@@ -196,6 +237,36 @@ class AppController extends ChangeNotifier {
       }
       final output = await pdfService.compressPdf(files.first);
       statusMessage = 'Compressed PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> compressPdfPath(
+    String inputPath, {
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      final output = await pdfService.compressPdf(
+        inputPath,
+        outputFileName: outputFileName,
+      );
+      statusMessage = 'Compressed PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> wordToPdfPath(
+    String inputPath, {
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      final output = await officeService.wordToPdf(
+        inputPath,
+        outputFileName: outputFileName,
+      );
+      statusMessage = 'Word PDF saved to $output';
       await refreshAll();
       return output;
     });

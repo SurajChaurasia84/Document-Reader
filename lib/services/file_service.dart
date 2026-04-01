@@ -88,6 +88,19 @@ class FileService {
     return result.paths.whereType<String>().toList();
   }
 
+  Future<List<String>> pickWordFiles({bool allowMultiple = true}) async {
+    await ensureStoragePermissions();
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: allowMultiple,
+      type: FileType.custom,
+      allowedExtensions: const <String>['doc', 'docx'],
+    );
+    if (result == null) {
+      return <String>[];
+    }
+    return result.paths.whereType<String>().toList();
+  }
+
   Future<List<String>> pickImageFiles({bool allowMultiple = true}) async {
     await ensureStoragePermissions();
     final result = await FilePicker.platform.pickFiles(
@@ -145,21 +158,16 @@ class FileService {
   }) async {
     await ensureStoragePermissions();
     if (Platform.isAndroid) {
-      final directories = <Directory>[
-        Directory('/storage/emulated/0/Documents'),
-        Directory('/storage/emulated/0/Document'),
-        Directory('/storage/emulated/0/Movies'),
-        Directory('/storage/emulated/0/Recordings'),
-        Directory('/storage/emulated/0/Podcasts'),
-        Directory('/storage/emulated/0/Books'),
-      ];
-      return _listSupportedFilesFromDirectories(
-        directories,
+      return _listSupportedFiles(
+        Directory('/storage/emulated/0'),
         favorites: favorites,
         excludedPaths: <String>{
           '/storage/emulated/0/Download',
           '/storage/emulated/0/Downloads',
           '/storage/emulated/0/Android',
+          '/storage/emulated/0/DCIM',
+          '/storage/emulated/0/Pictures',
+          '/storage/emulated/0/Movies/.thumbnails',
           '/storage/emulated/0/.Trash',
           '/storage/emulated/0/Trash',
           '/storage/emulated/0/Recycle Bin',
@@ -195,29 +203,6 @@ class FileService {
     return _listSupportedFiles(directory, favorites: favorites);
   }
 
-  Future<List<AppFile>> _listSupportedFilesFromDirectories(
-    List<Directory> directories, {
-    required Set<String> favorites,
-    Set<String> excludedPaths = const <String>{},
-  }) async {
-    final filesByPath = <String, AppFile>{};
-
-    for (final directory in directories) {
-      final files = await _listSupportedFiles(
-        directory,
-        favorites: favorites,
-        excludedPaths: excludedPaths,
-      );
-      for (final file in files) {
-        filesByPath[file.path] = file;
-      }
-    }
-
-    final allFiles = filesByPath.values.toList()
-      ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
-    return allFiles;
-  }
-
   Future<List<AppFile>> _listSupportedFiles(
     Directory directory, {
     required Set<String> favorites,
@@ -231,39 +216,62 @@ class FileService {
         .map((path) => p.normalize(path).toLowerCase())
         .toList();
     final entities = <File>[];
+    final pending = <Directory>[directory];
 
-    try {
-      await for (final entity
-          in directory.list(recursive: true, followLinks: false)) {
-        if (entity is! File) {
-          continue;
-        }
-
-        final normalizedPath = p.normalize(entity.path).toLowerCase();
-        if (_isIgnoredPath(normalizedPath)) {
-          continue;
-        }
-        final isExcluded = normalizedExclusions.any(
-          (path) =>
-              normalizedPath == path ||
-              normalizedPath.startsWith('$path${Platform.pathSeparator}'),
-        );
-        if (isExcluded) {
-          continue;
-        }
-
-        final extension = p
-            .extension(entity.path)
-            .replaceFirst('.', '')
-            .toLowerCase();
-        if (!supportedExtensions.contains(extension)) {
-          continue;
-        }
-
-        entities.add(entity);
+    while (pending.isNotEmpty) {
+      final current = pending.removeLast();
+      final normalizedDirectory = p.normalize(current.path).toLowerCase();
+      if (_isIgnoredPath(normalizedDirectory)) {
+        continue;
       }
-    } on FileSystemException {
-      // Skip unreadable folders and return whatever could be scanned.
+
+      final isExcludedDirectory = normalizedExclusions.any(
+        (path) =>
+            normalizedDirectory == path ||
+            normalizedDirectory.startsWith('$path${Platform.pathSeparator}'),
+      );
+      if (isExcludedDirectory) {
+        continue;
+      }
+
+      try {
+        await for (final entity in current.list(followLinks: false)) {
+          final normalizedPath = p.normalize(entity.path).toLowerCase();
+          if (_isIgnoredPath(normalizedPath)) {
+            continue;
+          }
+
+          final isExcluded = normalizedExclusions.any(
+            (path) =>
+                normalizedPath == path ||
+                normalizedPath.startsWith('$path${Platform.pathSeparator}'),
+          );
+          if (isExcluded) {
+            continue;
+          }
+
+          if (entity is Directory) {
+            pending.add(entity);
+            continue;
+          }
+
+          if (entity is! File) {
+            continue;
+          }
+
+          final extension = p
+              .extension(entity.path)
+              .replaceFirst('.', '')
+              .toLowerCase();
+          if (!supportedExtensions.contains(extension)) {
+            continue;
+          }
+
+          entities.add(entity);
+        }
+      } on FileSystemException {
+        // Skip unreadable folders and keep scanning the rest.
+      }
     }
 
     entities.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
@@ -280,6 +288,48 @@ class FileService {
 
   Future<String> readTextFile(String path) {
     return File(path).readAsString();
+  }
+
+  Future<String> saveToPureDocFolder(String sourcePath) async {
+    await ensureStoragePermissions();
+    final sourceFile = File(sourcePath);
+    if (!await sourceFile.exists()) {
+      throw const FileSystemException('Source file not found.');
+    }
+
+    Directory targetDirectory;
+    if (Platform.isAndroid) {
+      targetDirectory = Directory('/storage/emulated/0/PureDoc');
+    } else {
+      final root = await getApplicationDocumentsDirectory();
+      targetDirectory = Directory(p.join(root.path, 'PureDoc'));
+    }
+
+    if (!await targetDirectory.exists()) {
+      await targetDirectory.create(recursive: true);
+    }
+
+    final extension = p.extension(sourcePath);
+    final baseName = p.basenameWithoutExtension(sourcePath);
+    var fileName = '$baseName$extension';
+    var targetPath = p.join(targetDirectory.path, fileName);
+    var suffix = 1;
+
+    while (await File(targetPath).exists()) {
+      fileName = '${baseName}_$suffix$extension';
+      targetPath = p.join(targetDirectory.path, fileName);
+      suffix++;
+    }
+
+    await sourceFile.copy(targetPath);
+    return targetPath;
+  }
+
+  Future<void> deleteFile(String path) async {
+    final file = File(path);
+    if (await file.exists()) {
+      await file.delete();
+    }
   }
 
   bool _isIgnoredPath(String normalizedPath) {
