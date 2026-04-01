@@ -111,7 +111,6 @@ class _ScannerScreenState extends State<ScannerScreen> {
                                 size: await File(output).length(),
                                 modifiedAt: DateTime.now(),
                               );
-                              await controller.openFile(scannedFile);
                               if (!context.mounted) {
                                 return;
                               }
