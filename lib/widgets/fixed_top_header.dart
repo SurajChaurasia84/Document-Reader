@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../utils/theme_utils.dart';
+
 class FixedTopHeader extends StatelessWidget {
   const FixedTopHeader({
     super.key,
@@ -26,7 +28,7 @@ class FixedTopHeader extends StatelessWidget {
       child: Container(
         width: double.infinity,
         height: 52,
-        color: const Color(0xFF0A0E1A),
+        color: context.appBackground,
         padding: const EdgeInsets.only(bottom: 6),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -36,7 +38,7 @@ class FixedTopHeader extends StatelessWidget {
                 title,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: context.primaryText,
                 ),
               ),
             ),

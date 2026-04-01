@@ -2,7 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
-import '../utils/app_theme.dart';
+import '../utils/theme_utils.dart';
 
 class GlassCard extends StatelessWidget {
   const GlassCard({
@@ -23,27 +23,32 @@ class GlassCard extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Material(
-          color: Colors.white.withValues(alpha: 0.05),
+          color: context.isDarkMode
+              ? Colors.white.withValues(alpha: 0.05)
+              : Colors.white.withValues(alpha: 0.75),
           child: InkWell(
             onTap: onTap,
             child: Container(
               padding: padding,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+                border: Border.all(color: context.borderColor),
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: <Color>[
-                    AppTheme.surface.withValues(alpha: 0.82),
-                    AppTheme.surface.withValues(alpha: 0.44),
+                    context.panelBackground.withValues(alpha: 0.92),
+                    context.softPanel.withValues(alpha: 0.72),
                   ],
                 ),
                 boxShadow: <BoxShadow>[
                   BoxShadow(
-                    color: AppTheme.cyan.withValues(alpha: 0.10),
-                    blurRadius: 24,
-                    spreadRadius: 1,
+                    color: (context.isDarkMode
+                            ? const Color(0xFF00E5FF)
+                            : const Color(0xFF1D4ED8))
+                        .withValues(alpha: 0.08),
+                    blurRadius: 18,
+                    spreadRadius: 0,
                   ),
                 ],
               ),
