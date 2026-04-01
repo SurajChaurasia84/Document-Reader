@@ -32,6 +32,8 @@ class _MergePdfScreenState extends State<MergePdfScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Merge PDF'),
         actions: <Widget>[
           TextButton(

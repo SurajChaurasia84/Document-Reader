@@ -32,6 +32,8 @@ class _SplitPdfScreenState extends State<SplitPdfScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         title: const Text('Split PDF'),
         actions: <Widget>[
           TextButton(

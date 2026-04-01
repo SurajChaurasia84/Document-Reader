@@ -6,9 +6,11 @@ import '../services/app_controller.dart';
 import '../utils/constants.dart';
 import '../widgets/fixed_top_header.dart';
 import '../widgets/tool_tile.dart';
+import 'compress_pdf_screen.dart';
 import 'merge_pdf_screen.dart';
 import 'scanner_screen.dart';
 import 'split_pdf_screen.dart';
+import 'word_to_pdf_screen.dart';
 
 class ToolsScreen extends StatefulWidget {
   const ToolsScreen({super.key});
@@ -144,6 +146,23 @@ class _ToolsScreenState extends State<ToolsScreen> {
           ),
         );
         break;
+      case 'word_to_pdf':
+        final files = await controller.fileService.pickWordFiles(
+          allowMultiple: false,
+        );
+        if (files.isEmpty) {
+          controller.setStatus('Pick a Word document to convert.');
+          break;
+        }
+        if (!context.mounted) {
+          return;
+        }
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => WordToPdfScreen(inputPath: files.first),
+          ),
+        );
+        break;
       case 'image_to_pdf':
         await controller.imageToPdf();
         break;
@@ -151,7 +170,19 @@ class _ToolsScreenState extends State<ToolsScreen> {
         await controller.pdfToImages();
         break;
       case 'compress_pdf':
-        await controller.compressPdf();
+        final files = await controller.fileService.pickPdfFiles(allowMultiple: false);
+        if (files.isEmpty) {
+          controller.setStatus('Pick a PDF to compress.');
+          break;
+        }
+        if (!context.mounted) {
+          return;
+        }
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => CompressPdfScreen(inputPath: files.first),
+          ),
+        );
         break;
       case 'scan_to_pdf':
         if (!context.mounted) {

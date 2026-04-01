@@ -119,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen>
               FadeTransition(
                 opacity: _controller,
                 child: const Text(
-                  'Fast document reading & tools for your daily use.',
+                  'Fast document reading & editing tools for your daily use.',
                   style: TextStyle(
                     color: Color(0xFF8B97AE),
                     fontSize: 13,
