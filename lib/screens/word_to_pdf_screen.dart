@@ -187,7 +187,6 @@ class _WordToPdfScreenState extends State<WordToPdfScreen> {
       size: await File(output).length(),
       modifiedAt: DateTime.now(),
     );
-    await controller.openFile(createdFile);
     if (!mounted) {
       return;
     }
