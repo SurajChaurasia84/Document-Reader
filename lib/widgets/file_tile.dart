@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/app_file.dart';
 import '../utils/formatters.dart';
+import '../utils/theme_utils.dart';
 import 'glass_card.dart';
 
 class FileTile extends StatelessWidget {
@@ -28,7 +29,9 @@ class FileTile extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: Colors.white.withValues(alpha: 0.08),
+              color: context.isDarkMode
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFE9EEF8),
             ),
             child: Center(
               child: Text(
@@ -53,7 +56,7 @@ class FileTile extends StatelessWidget {
                   '${formatFileSize(file.size)}  |  ${formatDate(file.modifiedAt)}',
                   style: Theme.of(
                     context,
-                  ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+                  ).textTheme.bodySmall?.copyWith(color: context.secondaryText),
                 ),
               ],
             ),
@@ -66,7 +69,7 @@ class FileTile extends StatelessWidget {
                   : Icons.star_border_rounded,
               color: file.isFavorite
                   ? const Color(0xFFF3B63F)
-                  : Colors.white70,
+                  : context.iconMuted,
             ),
           ),
         ],

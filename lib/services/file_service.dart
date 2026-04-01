@@ -332,6 +332,46 @@ class FileService {
     }
   }
 
+  Future<String> renameFile(String sourcePath, String newName) async {
+    final file = File(sourcePath);
+    if (!await file.exists()) {
+      throw const FileSystemException('Source file not found.');
+    }
+
+    final directory = p.dirname(sourcePath);
+    final extension = p.extension(sourcePath);
+    final sanitizedBaseName = newName
+        .trim()
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    if (sanitizedBaseName.isEmpty) {
+      throw const FileSystemException('Please enter a valid file name.');
+    }
+
+    final normalizedName = sanitizedBaseName.toLowerCase().endsWith(
+          extension.toLowerCase(),
+        )
+        ? sanitizedBaseName
+        : '$sanitizedBaseName$extension';
+    var targetPath = p.join(directory, normalizedName);
+    var suffix = 1;
+
+    while (await File(targetPath).exists() &&
+        p.normalize(targetPath).toLowerCase() !=
+            p.normalize(sourcePath).toLowerCase()) {
+      final base = p.basenameWithoutExtension(normalizedName);
+      targetPath = p.join(directory, '${base}_$suffix$extension');
+      suffix++;
+    }
+
+    if (p.normalize(targetPath).toLowerCase() ==
+        p.normalize(sourcePath).toLowerCase()) {
+      return sourcePath;
+    }
+
+    final renamed = await file.rename(targetPath);
+    return renamed.path;
+  }
+
   bool _isIgnoredPath(String normalizedPath) {
     final ignoredSegments = <String>[
       '${Platform.pathSeparator}.',

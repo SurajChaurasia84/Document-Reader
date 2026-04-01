@@ -6,6 +6,7 @@ class StorageService {
   static const _favoritesKey = 'favorite_paths';
   static const _lastOpenedPathKey = 'last_opened_path';
   static const _cachedSummaryKey = 'cached_summary';
+  static const _darkModeKey = 'pref_dark_mode';
 
   SharedPreferences? _prefs;
 
@@ -38,6 +39,11 @@ class StorageService {
     await _prefs!.setString(_lastOpenedPathKey, path);
   }
 
+  Future<void> clearLastOpenedPath() async {
+    await init();
+    await _prefs!.remove(_lastOpenedPathKey);
+  }
+
   Future<Map<String, String>> getCachedSummaries() async {
     await init();
     final raw = _prefs!.getString(_cachedSummaryKey);
@@ -52,5 +58,15 @@ class StorageService {
     final cache = await getCachedSummaries();
     cache[path] = summary;
     await _prefs!.setString(_cachedSummaryKey, jsonEncode(cache));
+  }
+
+  Future<bool> getDarkModeEnabled() async {
+    await init();
+    return _prefs!.getBool(_darkModeKey) ?? true;
+  }
+
+  Future<void> setDarkModeEnabled(bool value) async {
+    await init();
+    await _prefs!.setBool(_darkModeKey, value);
   }
 }

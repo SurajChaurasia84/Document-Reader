@@ -7,6 +7,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../utils/formatters.dart';
+import '../utils/theme_utils.dart';
 import 'document_viewer_screen.dart';
 import 'photo_preview_screen.dart';
 import 'scanner_screen.dart';
@@ -64,12 +65,12 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
     final visibleFiles = _sortFiles(_applyFilter(sourceFiles));
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0E1A),
+      backgroundColor: context.appBackground,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: controller.refreshAll,
-          color: const Color(0xFFF3B63F),
-          backgroundColor: const Color(0xFF181C2B),
+          color: context.selectedAccent,
+          backgroundColor: context.panelBackground,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
             children: <Widget>[
@@ -78,10 +79,10 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                 onViewTap: () => _showHint(context, 'Grid view will be added next.'),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'All your documents in one place',
                 style: TextStyle(
-                  color: Color(0xFF767C98),
+                  color: context.secondaryText,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -107,8 +108,8 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                 children: <Widget>[
                   Text(
                     '${visibleFiles.length} files',
-                    style: const TextStyle(
-                      color: Color(0xFF767C98),
+                    style: TextStyle(
+                      color: context.secondaryText,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -171,7 +172,6 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                           }
                           return;
                         }
-                        await controller.openFile(file);
                         if (!context.mounted) {
                           return;
                         }
@@ -342,7 +342,7 @@ class _ImportButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1E1A35),
+      color: context.softPanel,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -352,21 +352,21 @@ class _ImportButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF322C58)),
+            border: Border.all(color: context.borderColor),
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(
                 Icons.add_rounded,
                 size: 16,
-                color: Color(0xFFA7A2FF),
+                color: context.selectedAccent,
               ),
               SizedBox(width: 4),
               Text(
                 'Import',
                 style: TextStyle(
-                  color: Color(0xFFA7A2FF),
+                  color: context.selectedAccent,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -392,11 +392,11 @@ class _HeaderRow extends StatelessWidget {
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const <Widget>[
+            children: <Widget>[
               Text(
                 'My Files',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.primaryText,
                   fontSize: 30,
                   fontWeight: FontWeight.w800,
                 ),
@@ -421,7 +421,7 @@ class _HeaderActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF181C2B),
+      color: context.panelBackground,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -429,7 +429,7 @@ class _HeaderActionButton extends StatelessWidget {
         child: SizedBox(
           width: 42,
           height: 42,
-          child: Icon(icon, color: const Color(0xFFB7BED8), size: 20),
+          child: Icon(icon, color: context.iconMuted, size: 20),
         ),
       ),
     );
@@ -447,9 +447,9 @@ class _SourceTabs extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFF111423),
+        color: context.softPanel,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF1E2135)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Row(
         children: MyFilesSource.values.map((source) {
@@ -458,7 +458,9 @@ class _SourceTabs extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Material(
-                color: selected ? const Color(0xFF171935) : Colors.transparent,
+                color: selected
+                    ? context.selectedAccent.withValues(alpha: 0.14)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 child: InkWell(
                   onTap: () => onChanged(source),
@@ -468,7 +470,7 @@ class _SourceTabs extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: selected
-                          ? Border.all(color: const Color(0xFF5147E5))
+                          ? Border.all(color: context.selectedAccent)
                           : null,
                     ),
                     child: Center(
@@ -476,8 +478,8 @@ class _SourceTabs extends StatelessWidget {
                         source.label,
                         style: TextStyle(
                           color: selected
-                              ? const Color(0xFFA7A2FF)
-                              : const Color(0xFF717694),
+                              ? context.selectedAccent
+                              : context.secondaryText,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
                         ),
@@ -504,7 +506,7 @@ class _SortButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return PopupMenuButton<MyFilesSortOption>(
       tooltip: 'Sort files',
-      color: const Color(0xFF181C2B),
+      color: context.panelBackground,
       surfaceTintColor: Colors.transparent,
       onSelected: onSelected,
       itemBuilder: (context) {
@@ -513,7 +515,7 @@ class _SortButton extends StatelessWidget {
             value: option,
             child: Text(
               option.label,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: context.primaryText),
             ),
           );
         }).toList();
@@ -522,32 +524,32 @@ class _SortButton extends StatelessWidget {
         height: 34,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF111423),
+          color: context.softPanel,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF1E2135)),
+          border: Border.all(color: context.borderColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            const Icon(
+            Icon(
               Icons.filter_list_rounded,
               size: 16,
-              color: Color(0xFF8D93AF),
+              color: context.secondaryText,
             ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: const TextStyle(
-                color: Color(0xFF8D93AF),
+              style: TextStyle(
+                color: context.secondaryText,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               Icons.keyboard_arrow_down_rounded,
               size: 16,
-              color: Color(0xFF8D93AF),
+              color: context.secondaryText,
             ),
           ],
         ),
@@ -570,7 +572,9 @@ class _FilterChipButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? const Color(0xFF2C1A0A) : const Color(0xFF111423),
+      color: selected
+          ? context.selectedAccent.withValues(alpha: 0.12)
+          : context.softPanel,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -581,16 +585,16 @@ class _FilterChipButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: selected
-                  ? const Color(0xFFFFA73A)
-                  : const Color(0xFF1E2135),
+                  ? context.selectedAccent
+                  : context.borderColor,
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
               color: selected
-                  ? const Color(0xFFFFA73A)
-                  : const Color(0xFF747A97),
+                  ? context.selectedAccent
+                  : context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -615,7 +619,7 @@ class _MyFileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1E232A),
+      color: context.panelBackground,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -650,8 +654,8 @@ class _MyFileCard extends StatelessWidget {
                       file.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.primaryText,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -662,8 +666,8 @@ class _MyFileCard extends StatelessWidget {
                       fallbackLabel: _FilePageCountLabel.fallbackFor(file),
                       size: file.size,
                       modifiedAt: file.modifiedAt,
-                      style: const TextStyle(
-                        color: Color(0xFF96A0AE),
+                      style: TextStyle(
+                        color: context.secondaryText,
                         fontSize: 12,
                       ),
                     ),
@@ -679,7 +683,7 @@ class _MyFileCard extends StatelessWidget {
                       : Icons.star_border_rounded,
                   color: file.isFavorite
                       ? const Color(0xFFF3B63F)
-                      : const Color(0xFF96A0AE),
+                      : context.secondaryText,
                 ),
               ),
             ],
@@ -781,13 +785,13 @@ class _EmptyStateCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF121524),
+        color: context.panelBackground,
         borderRadius: BorderRadius.circular(18),
       ),
-      child: const Text(
+      child: Text(
         'No files found for this location and filter.',
         style: TextStyle(
-          color: Color(0xFF8A90AA),
+          color: context.secondaryText,
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -818,8 +822,8 @@ class _ImportSheet extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF151733),
+        decoration: BoxDecoration(
+          color: context.panelBackground,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         padding: const EdgeInsets.fromLTRB(18, 10, 18, 22),
@@ -830,30 +834,30 @@ class _ImportSheet extends StatelessWidget {
               width: 54,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF595D78),
+                color: context.secondaryText.withValues(alpha: 0.4),
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
             const SizedBox(height: 18),
-            const Align(
+            Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Import Files',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: context.primaryText,
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
             const SizedBox(height: 6),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Choose how to add files to PureDoc',
-                  style: TextStyle(
-                    color: Color(0xFF8A90AA),
-                    fontSize: 13,
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Choose how to add files to PureDoc',
+                style: TextStyle(
+                  color: context.secondaryText,
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -931,8 +935,8 @@ class _ImportActionTile extends StatelessWidget {
                     children: <Widget>[
                       Text(
                         title,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: context.primaryText,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -940,8 +944,8 @@ class _ImportActionTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: Color(0xFF8A90AA),
+                        style: TextStyle(
+                          color: context.secondaryText,
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -949,9 +953,9 @@ class _ImportActionTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: Color(0xFF8A90AA),
+                  color: context.secondaryText,
                 ),
               ],
             ),

@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../utils/formatters.dart';
+import '../utils/theme_utils.dart';
 import 'document_viewer_screen.dart';
 import 'photo_preview_screen.dart';
 
@@ -74,7 +75,7 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
         );
 
         return Scaffold(
-          backgroundColor: const Color(0xFF0A0E1A),
+          backgroundColor: context.appBackground,
           appBar: AppBar(
             elevation: 0,
             surfaceTintColor: Colors.transparent,
@@ -84,7 +85,7 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
                 tooltip: 'Sort',
                 icon: const Icon(Icons.sort_rounded),
                 initialValue: _sortOption,
-                color: const Color(0xFF181C2B),
+                color: context.panelBackground,
                 surfaceTintColor: Colors.transparent,
                 onSelected: (value) {
                   setState(() {
@@ -97,7 +98,7 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
                       value: option,
                       child: Text(
                         option.label,
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: context.primaryText),
                       ),
                     );
                   }).toList();
@@ -110,15 +111,15 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
               await controller.refreshAll();
               _reloadCreatedFiles(controller);
             },
-            color: const Color(0xFFF3B63F),
-            backgroundColor: const Color(0xFF181C2B),
+            color: context.selectedAccent,
+            backgroundColor: context.panelBackground,
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
               children: <Widget>[
-                const Text(
+                Text(
                   'Files you created inside PureDoc',
                   style: TextStyle(
-                    color: Color(0xFF767C98),
+                    color: context.secondaryText,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -204,11 +205,9 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
       return;
     }
 
-    await controller.openFile(file);
     if (!context.mounted) {
       return;
     }
-
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => file.isImage
@@ -414,7 +413,9 @@ class _CreationChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? const Color(0xFF2C1A0A) : const Color(0xFF111423),
+      color: selected
+          ? context.selectedAccent.withValues(alpha: 0.12)
+          : context.softPanel,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -425,16 +426,16 @@ class _CreationChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: selected
-                  ? const Color(0xFFFFA73A)
-                  : const Color(0xFF1E2135),
+                  ? context.selectedAccent
+                  : context.borderColor,
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
               color: selected
-                  ? const Color(0xFFFFA73A)
-                  : const Color(0xFF747A97),
+                  ? context.selectedAccent
+                  : context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -467,7 +468,7 @@ class _CreationFileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF131726),
+      color: context.panelBackground,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -476,7 +477,7 @@ class _CreationFileCard extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFF1E2135)),
+            border: Border.all(color: context.borderColor),
           ),
           child: Row(
             children: <Widget>[
@@ -484,7 +485,7 @@ class _CreationFileCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E2335),
+                  color: context.softPanel,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
@@ -503,8 +504,8 @@ class _CreationFileCard extends StatelessWidget {
                       file.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.primaryText,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -514,8 +515,8 @@ class _CreationFileCard extends StatelessWidget {
                       '$categoryLabel  •  ${formatFileSize(file.size)}  •  ${formatDate(file.modifiedAt)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF7D84A2),
+                      style: TextStyle(
+                        color: context.secondaryText,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -525,11 +526,11 @@ class _CreationFileCard extends StatelessWidget {
               ),
               PopupMenuButton<_CreationAction>(
                 tooltip: 'More actions',
-                color: const Color(0xFF181C2B),
+                color: context.panelBackground,
                 surfaceTintColor: Colors.transparent,
-                icon: const Icon(
+                icon: Icon(
                   Icons.more_vert_rounded,
-                  color: Color(0xFF98A0BC),
+                  color: context.secondaryText,
                 ),
                 onSelected: (value) {
                   switch (value) {
@@ -551,28 +552,28 @@ class _CreationFileCard extends StatelessWidget {
                         file.isFavorite
                             ? 'Remove from favourites'
                             : 'Add to favourites',
-                        style: const TextStyle(color: Colors.white),
+                        style: TextStyle(color: context.primaryText),
                       ),
                     ),
-                    const PopupMenuItem<_CreationAction>(
+                    PopupMenuItem<_CreationAction>(
                       value: _CreationAction.share,
                       child: Text(
                         'Share',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: context.primaryText),
                       ),
                     ),
-                    const PopupMenuItem<_CreationAction>(
+                    PopupMenuItem<_CreationAction>(
                       value: _CreationAction.save,
                       child: Text(
                         'Save',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: context.primaryText),
                       ),
                     ),
-                    const PopupMenuItem<_CreationAction>(
+                    PopupMenuItem<_CreationAction>(
                       value: _CreationAction.delete,
                       child: Text(
                         'Delete',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: context.primaryText),
                       ),
                     ),
                   ];
@@ -596,29 +597,29 @@ class _EmptyCreationsCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFF131726),
+        color: context.panelBackground,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF1E2135)),
+        border: Border.all(color: context.borderColor),
       ),
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.folder_copy_rounded, color: Color(0xFF7D84A2), size: 34),
-          SizedBox(height: 10),
+          Icon(Icons.folder_copy_rounded, color: context.secondaryText, size: 34),
+          const SizedBox(height: 10),
           Text(
             'No creations found yet.',
             style: TextStyle(
-              color: Colors.white,
+              color: context.primaryText,
               fontSize: 15,
               fontWeight: FontWeight.w700,
             ),
           ),
-          SizedBox(height: 6),
+          const SizedBox(height: 6),
           Text(
             'Merged PDFs, compressed files, scans, and image PDFs will appear here.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Color(0xFF7D84A2),
+              color: context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),

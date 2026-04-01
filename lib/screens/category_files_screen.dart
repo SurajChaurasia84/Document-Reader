@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import '../utils/theme_utils.dart';
 import '../widgets/file_tile.dart';
 import 'document_viewer_screen.dart';
 
@@ -116,10 +117,10 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
             ),
           Expanded(
             child: sortedFiles.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'No files found in this category.',
-                      style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: context.secondaryText),
                     ),
                   )
                 : RefreshIndicator(
@@ -233,7 +234,9 @@ class _FormatChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? const Color(0xFF2C1A0A) : const Color(0xFF111423),
+      color: selected
+          ? context.selectedAccent.withValues(alpha: 0.12)
+          : context.softPanel,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -244,16 +247,16 @@ class _FormatChip extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
               color: selected
-                  ? const Color(0xFFFFA73A)
-                  : const Color(0xFF1E2135),
+                  ? context.selectedAccent
+                  : context.borderColor,
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
               color: selected
-                  ? const Color(0xFFFFA73A)
-                  : const Color(0xFF747A97),
+                  ? context.selectedAccent
+                  : context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
