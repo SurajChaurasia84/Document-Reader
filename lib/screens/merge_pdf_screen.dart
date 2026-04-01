@@ -189,7 +189,6 @@ class _MergePdfScreenState extends State<MergePdfScreen> {
       size: await File(output).length(),
       modifiedAt: DateTime.now(),
     );
-    await controller.openFile(mergedFile);
     if (!mounted) {
       return;
     }

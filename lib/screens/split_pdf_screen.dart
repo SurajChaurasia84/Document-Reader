@@ -182,7 +182,6 @@ class _SplitPdfScreenState extends State<SplitPdfScreen> {
       size: await File(firstOutput).length(),
       modifiedAt: DateTime.now(),
     );
-    await controller.openFile(splitFile);
     if (!mounted) {
       return;
     }

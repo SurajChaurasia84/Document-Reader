@@ -210,7 +210,6 @@ class _CompressPdfScreenState extends State<CompressPdfScreen> {
       size: await outputFile.length(),
       modifiedAt: DateTime.now(),
     );
-    await controller.openFile(compressedFile);
     if (!mounted) {
       return;
     }
