@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../services/app_controller.dart';
 import '../utils/app_theme.dart';
+import '../utils/theme_utils.dart';
 import 'home_screen.dart';
 import 'my_files_screen.dart';
 import 'scanner_screen.dart';
@@ -47,7 +48,7 @@ class ShellScreen extends StatelessWidget {
           label: const Text('Scan'),
         ),
         bottomNavigationBar: Container(
-          color: AppTheme.surface,
+          color: context.panelBackground,
           padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
           child: SafeArea(
             top: false,
@@ -115,7 +116,11 @@ class _BottomTabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppTheme.cyan : Colors.white60;
+    final selectedColor = context.isDarkMode
+        ? AppTheme.cyan
+        : (Theme.of(context).floatingActionButtonTheme.backgroundColor ??
+              Theme.of(context).colorScheme.primary);
+    final color = selected ? selectedColor : context.iconMuted;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -130,7 +135,7 @@ class _BottomTabItem extends StatelessWidget {
               width: 28,
               height: 3,
               decoration: BoxDecoration(
-                color: selected ? AppTheme.cyan : Colors.transparent,
+                color: selected ? selectedColor : Colors.transparent,
                 borderRadius: BorderRadius.circular(999),
               ),
             ),
@@ -146,7 +151,9 @@ class _BottomTabItem extends StatelessWidget {
                 boxShadow: selected
                     ? <BoxShadow>[
                         BoxShadow(
-                          color: AppTheme.cyan.withValues(alpha: 0.05),
+                          color: selectedColor.withValues(
+                            alpha: context.isDarkMode ? 0.05 : 0.12,
+                          ),
                           blurRadius: 16,
                           spreadRadius: 0,
                         ),
