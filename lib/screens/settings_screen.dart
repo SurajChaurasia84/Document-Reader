@@ -10,6 +10,7 @@ import '../models/storage_overview.dart';
 import '../services/app_controller.dart';
 import '../services/storage_info_service.dart';
 import '../utils/formatters.dart';
+import '../utils/theme_utils.dart';
 import '../widgets/fixed_top_header.dart';
 import '../widgets/glass_card.dart';
 
@@ -144,6 +145,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
                     Text(
+                      'Preferences',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: <Widget>[
+                        Icon(
+                          Icons.dark_mode_rounded,
+                          color: context.iconMuted,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              Text(
+                                'Dark Mode',
+                                style: TextStyle(
+                                  color: context.primaryText,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Turn on for a better experience',
+                                style: TextStyle(
+                                  color: context.secondaryText,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: controller.isDarkMode,
+                          onChanged: (value) => controller.setDarkMode(value),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
                       'More',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
@@ -200,11 +252,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Column(
                       children: <Widget>[
-                        const Text(
+                        Text(
                           'PureDoc',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: Colors.white,
+                            color: context.primaryText,
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
@@ -213,8 +265,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Text(
                           'Version $version',
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFF96A0AE),
+                          style: TextStyle(
+                            color: context.secondaryText,
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
                           ),
@@ -270,7 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _showShareOptions(BuildContext context) async {
     await showModalBottomSheet<void>(
       context: context,
-      backgroundColor: const Color(0xFF111827),
+      backgroundColor: context.panelBackground,
       showDragHandle: true,
       builder: (sheetContext) {
         return SafeArea(
@@ -281,10 +333,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 ListTile(
-                  leading: const Icon(Icons.share_outlined, color: Colors.white),
-                  title: const Text('Share via'),
-                  subtitle: const Text(
+                  leading: Icon(Icons.share_outlined, color: context.primaryText),
+                  title: Text(
+                    'Share via',
+                    style: TextStyle(color: context.primaryText),
+                  ),
+                  subtitle: Text(
                     'Choose an app to send text and Play Store link',
+                    style: TextStyle(color: context.secondaryText),
                   ),
                   onTap: () async {
                     Navigator.of(sheetContext).pop();
@@ -292,12 +348,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(
+                  leading: Icon(
                     Icons.content_copy_rounded,
-                    color: Colors.white,
+                    color: context.primaryText,
                   ),
-                  title: const Text('Copy link'),
-                  subtitle: const Text('Copy Play Store link to clipboard'),
+                  title: Text(
+                    'Copy link',
+                    style: TextStyle(color: context.primaryText),
+                  ),
+                  subtitle: Text(
+                    'Copy Play Store link to clipboard',
+                    style: TextStyle(color: context.secondaryText),
+                  ),
                   onTap: () async {
                     await Clipboard.setData(
                       const ClipboardData(text: _playStoreUrl),
@@ -343,6 +405,7 @@ class _StorageCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
     final usedStorage = formatFileSize(info.usedBytes);
     final availableStorage = formatFileSize(info.availableBytes);
     final totalStorage = formatFileSize(info.totalBytes);
@@ -360,11 +423,13 @@ class _StorageCard extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: <Color>[
             accent.withValues(alpha: 0.22),
-            const Color(0xFF19304F).withValues(alpha: 0.94),
+            (isDark ? const Color(0xFF19304F) : Colors.white).withValues(
+              alpha: isDark ? 0.94 : 0.98,
+            ),
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(color: context.borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,14 +441,18 @@ class _StorageCard extends StatelessWidget {
               color: accent.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: Colors.white, size: 18),
+            child: Icon(
+              icon,
+              color: isDark ? Colors.white : accent,
+              size: 18,
+            ),
           ),
           const SizedBox(height: 12),
           Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: context.primaryText,
             ),
           ),
           const SizedBox(height: 6),
@@ -391,8 +460,8 @@ class _StorageCard extends StatelessWidget {
             summary,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFFBFD1EA),
+            style: TextStyle(
+              color: context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -403,9 +472,9 @@ class _StorageCard extends StatelessWidget {
             child: LinearProgressIndicator(
               minHeight: 6,
               value: progress,
-              backgroundColor: Colors.white.withValues(alpha: 0.06),
+              backgroundColor: context.softPanel,
               valueColor: AlwaysStoppedAnimation<Color>(
-                Colors.white.withValues(alpha: 0.95),
+                accent,
               ),
             ),
           ),
@@ -415,8 +484,8 @@ class _StorageCard extends StatelessWidget {
               if (showUsedValue)
                 Text(
                   'Used: $usedStorage',
-                  style: const TextStyle(
-                    color: Color(0xFFBFD1EA),
+                  style: TextStyle(
+                    color: context.secondaryText,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -425,8 +494,8 @@ class _StorageCard extends StatelessWidget {
               Text(
                 'Available: ${availableValue ?? availableStorage}',
                 textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: Color(0xFFBFD1EA),
+                style: TextStyle(
+                  color: context.secondaryText,
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
@@ -463,21 +532,21 @@ class _MoreMenuTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
               children: <Widget>[
-                Icon(icon, color: Colors.white70, size: 20),
+                Icon(icon, color: context.iconMuted, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: context.primaryText,
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-                const Icon(
+                Icon(
                   Icons.chevron_right_rounded,
-                  color: Colors.white54,
+                  color: context.secondaryText,
                 ),
               ],
             ),
@@ -486,7 +555,7 @@ class _MoreMenuTile extends StatelessWidget {
         if (showDivider)
           Divider(
             height: 1,
-            color: Colors.white.withValues(alpha: 0.06),
+            color: context.borderColor,
           ),
       ],
     );
@@ -508,8 +577,8 @@ class _InfoPage extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         child: Text(
           content,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: context.primaryText,
             fontSize: 14,
             height: 1.6,
           ),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:open_filex/open_filex.dart';
 
 import '../models/app_file.dart';
@@ -37,6 +38,7 @@ class AppController extends ChangeNotifier {
 
   bool isInitialized = false;
   bool isLoading = false;
+  bool isDarkMode = true;
   int currentIndex = 0;
   String? statusMessage;
 
@@ -50,6 +52,7 @@ class AppController extends ChangeNotifier {
     await _runBusyTask(() async {
       await storageService.init();
       await databaseService.init();
+      isDarkMode = await storageService.getDarkModeEnabled();
       await refreshAll();
       isInitialized = true;
     });
@@ -99,12 +102,18 @@ class AppController extends ChangeNotifier {
         isFavorite: favorites.contains(lastPath),
       );
     }
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void updateNavigation(int index) {
     currentIndex = index;
-    notifyListeners();
+    _safeNotifyListeners();
+  }
+
+  Future<void> setDarkMode(bool value) async {
+    isDarkMode = value;
+    _safeNotifyListeners();
+    await storageService.setDarkModeEnabled(value);
   }
 
   Future<AppFile?> pickDocument() async {
@@ -119,25 +128,36 @@ class AppController extends ChangeNotifier {
   Future<void> openFile(AppFile file) async {
     if (!await File(file.path).exists()) {
       statusMessage = 'This file is no longer available on your device.';
-      notifyListeners();
+      _safeNotifyListeners();
       return;
     }
+
+    final favoritePaths = favoriteFiles.map((item) => item.path).toSet();
+    final openedFile = file.copyWith(
+      isFavorite: favoritePaths.contains(file.path) || file.isFavorite,
+    );
+
+    lastOpenedFile = openedFile;
+    recentFiles = <AppFile>[
+      openedFile,
+      ...recentFiles.where((item) => item.path != file.path),
+    ];
     await databaseService.upsertRecentFile(file);
     await storageService.setLastOpenedPath(file.path);
-    await refreshAll();
+    _safeNotifyListeners();
   }
 
   Future<void> toggleFavorite(AppFile file) async {
     final nextValue = !file.isFavorite;
     _applyFavoriteState(file.path, nextValue);
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       await storageService.setFavorite(file.path, nextValue);
       await refreshAll();
     } catch (_) {
       _applyFavoriteState(file.path, file.isFavorite);
-      notifyListeners();
+      _safeNotifyListeners();
       rethrow;
     }
   }
@@ -210,7 +230,25 @@ class AppController extends ChangeNotifier {
       if (files.isEmpty) {
         throw Exception('Pick one or more images.');
       }
-      final output = await pdfService.imageToPdf(files);
+      final output = await pdfService.imageToPdfPaths(files);
+      statusMessage = 'Image PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> imageToPdfPaths(
+    List<String> paths, {
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      if (paths.isEmpty) {
+        throw Exception('Pick one or more images.');
+      }
+      final output = await pdfService.imageToPdfPaths(
+        paths,
+        outputFileName: outputFileName,
+      );
       statusMessage = 'Image PDF saved to $output';
       await refreshAll();
       return output;
@@ -252,6 +290,57 @@ class AppController extends ChangeNotifier {
         outputFileName: outputFileName,
       );
       statusMessage = 'Compressed PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> protectPdfPath(
+    String inputPath, {
+    required String password,
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      final output = await pdfService.protectPdf(
+        inputPath,
+        userPassword: password,
+        outputFileName: outputFileName,
+      );
+      statusMessage = 'Protected PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> unlockPdfPath(
+    String inputPath, {
+    required String password,
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      final output = await pdfService.unlockPdf(
+        inputPath,
+        password: password,
+        outputFileName: outputFileName,
+      );
+      statusMessage = 'Unlocked PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> addPageNumbersPath(
+    String inputPath, {
+    required PdfPageNumberTemplate template,
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      final output = await pdfService.addPageNumbers(
+        inputPath,
+        template: template,
+        outputFileName: outputFileName,
+      );
+      statusMessage = 'Page-numbered PDF saved to $output';
       await refreshAll();
       return output;
     });
@@ -315,27 +404,75 @@ class AppController extends ChangeNotifier {
     });
   }
 
+  Future<String?> previewOfficeFile(AppFile file) {
+    return _runBusyTask(() async {
+      return officeService.extractPreviewText(file.path);
+    });
+  }
+
   Future<void> openExternally(String path) async {
     await OpenFilex.open(path);
   }
 
+  Future<AppFile?> renameFile(AppFile file, String newName) {
+    return _runBusyTask(() async {
+      final newPath = await fileService.renameFile(file.path, newName);
+      if (newPath == file.path) {
+        return file;
+      }
+
+      if (file.isFavorite) {
+        await storageService.setFavorite(file.path, false);
+        await storageService.setFavorite(newPath, true);
+      }
+      if (lastOpenedFile?.path == file.path) {
+        await storageService.setLastOpenedPath(newPath);
+      }
+
+      await databaseService.deleteRecentFile(file.path);
+      final renamedFile = AppFile.fromFileSystemEntity(
+        File(newPath),
+        isFavorite: file.isFavorite,
+      );
+      await databaseService.upsertRecentFile(renamedFile);
+      statusMessage = 'Renamed to ${renamedFile.name}';
+      await refreshAll();
+      return renamedFile;
+    });
+  }
+
+  Future<void> deleteManagedFile(AppFile file) {
+    return _runBusyTask(() async {
+      await fileService.deleteFile(file.path);
+      if (file.isFavorite) {
+        await storageService.setFavorite(file.path, false);
+      }
+      if (lastOpenedFile?.path == file.path) {
+        await storageService.clearLastOpenedPath();
+      }
+      await databaseService.deleteRecentFile(file.path);
+      statusMessage = 'File deleted';
+      await refreshAll();
+    });
+  }
+
   void setStatus(String? message) {
     statusMessage = message;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   Future<T?> _runBusyTask<T>(Future<T> Function() action) async {
     try {
       isLoading = true;
       statusMessage = null;
-      notifyListeners();
+      _safeNotifyListeners();
       return await action();
     } catch (error) {
       statusMessage = error.toString().replaceFirst('Exception: ', '');
       return null;
     } finally {
       isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -384,6 +521,26 @@ class AppController extends ChangeNotifier {
     final files = favorites.values.toList()
       ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
     return files;
+  }
+
+  void _safeNotifyListeners() {
+    if (!hasListeners) {
+      return;
+    }
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    final duringBuild =
+        phase == SchedulerPhase.transientCallbacks ||
+        phase == SchedulerPhase.midFrameMicrotasks ||
+        phase == SchedulerPhase.persistentCallbacks;
+    if (duringBuild) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (hasListeners) {
+          notifyListeners();
+        }
+      });
+      return;
+    }
+    notifyListeners();
   }
 }
 
