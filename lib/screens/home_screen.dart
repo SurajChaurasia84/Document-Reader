@@ -7,6 +7,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../utils/formatters.dart';
+import '../utils/theme_utils.dart';
 import '../widgets/fixed_top_header.dart';
 import 'category_files_screen.dart';
 import 'document_viewer_screen.dart';
@@ -153,7 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
               opacity: _searchCollapsed ? 1 : 0,
               child: IconButton(
                 onPressed: _focusSearch,
-                icon: const Icon(Icons.search_rounded, color: Colors.white70),
+                icon: Icon(Icons.search_rounded, color: context.iconMuted),
               ),
             ),
           ),
@@ -161,8 +162,8 @@ class _HomeScreenState extends State<HomeScreen> {
         Expanded(
           child: RefreshIndicator(
             onRefresh: controller.refreshAll,
-            color: const Color(0xFFF3B63F),
-            backgroundColor: const Color(0xFF1E232A),
+            color: context.selectedAccent,
+            backgroundColor: context.panelBackground,
             child: ListView(
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 120),
@@ -255,8 +256,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 12),
                   Text(
                     controller.statusMessage!,
-                    style: const TextStyle(
-                      color: Color(0xFFF3B63F),
+                    style: TextStyle(
+                      color: context.selectedAccent,
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
@@ -420,32 +421,32 @@ class _SearchField extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF22272E),
+        color: context.searchBackground,
         borderRadius: BorderRadius.circular(14),
       ),
-        child: TextField(
-          controller: controller,
-          focusNode: focusNode,
-          onChanged: onChanged,
-          style: const TextStyle(color: Colors.white),
+      child: TextField(
+        controller: controller,
+        focusNode: focusNode,
+        onChanged: onChanged,
+        style: TextStyle(color: context.primaryText),
         decoration: InputDecoration(
           hintText: 'Search',
-          hintStyle: const TextStyle(color: Color(0xFF96A0AE)),
-          prefixIcon: const Icon(
+          hintStyle: TextStyle(color: context.secondaryText),
+          prefixIcon: Icon(
             Icons.search_rounded,
-            color: Color(0xFF96A0AE),
+            color: context.secondaryText,
           ),
-            suffixIcon: query.isEmpty
-                ? null
-                : IconButton(
-                    onPressed: () {
-                      controller.clear();
-                      focusNode.unfocus();
-                      onChanged('');
-                    },
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: Color(0xFF96A0AE),
+          suffixIcon: query.isEmpty
+              ? null
+              : IconButton(
+                  onPressed: () {
+                    controller.clear();
+                    focusNode.unfocus();
+                    onChanged('');
+                  },
+                  icon: Icon(
+                    Icons.close_rounded,
+                    color: context.secondaryText,
                   ),
                 ),
           border: InputBorder.none,
@@ -476,8 +477,8 @@ class _SectionLabel extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: context.primaryText,
               fontSize: 20,
               fontWeight: FontWeight.w700,
             ),
@@ -486,8 +487,8 @@ class _SectionLabel extends StatelessWidget {
         if (trailing != null)
           Text(
             trailing!,
-            style: const TextStyle(
-              color: Color(0xFF96A0AE),
+            style: TextStyle(
+              color: context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w500,
             ),
@@ -520,7 +521,7 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1E232A),
+      color: context.panelBackground,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -549,8 +550,8 @@ class _CategoryCard extends StatelessWidget {
                       category.title,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: context.primaryText,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
@@ -558,8 +559,8 @@ class _CategoryCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       '${category.count} files',
-                      style: const TextStyle(
-                        color: Color(0xFF96A0AE),
+                      style: TextStyle(
+                        color: context.secondaryText,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
@@ -583,7 +584,7 @@ class _PlaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1E232A),
+      color: context.panelBackground,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: action.onTap,
@@ -607,8 +608,8 @@ class _PlaceCard extends StatelessWidget {
                   action.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.primaryText,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
@@ -636,7 +637,7 @@ class _RecentFileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF1E232A),
+      color: context.panelBackground,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -671,17 +672,17 @@ class _RecentFileCard extends StatelessWidget {
                       file.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
+                  style: TextStyle(
+                    color: context.primaryText,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
                     ),
                       const SizedBox(height: 2),
                       _RecentFileMetaText(
                         file: file,
-                        textStyle: const TextStyle(
-                          color: Color(0xFF96A0AE),
+                        textStyle: TextStyle(
+                          color: context.secondaryText,
                           fontSize: 12,
                         ),
                       ),
@@ -696,7 +697,7 @@ class _RecentFileCard extends StatelessWidget {
                       : Icons.star_border_rounded,
                   color: file.isFavorite
                       ? const Color(0xFFF3B63F)
-                      : const Color(0xFF96A0AE),
+                      : context.secondaryText,
                 ),
               ),
             ],
@@ -780,12 +781,16 @@ class _EmptyFilesCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E232A),
+        color: context.panelBackground,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: const Text(
+      child: Text(
         'No files found. Open a folder file or pull documents into the app to get started.',
-        style: TextStyle(color: Color(0xFF96A0AE), fontSize: 14, height: 1.4),
+        style: TextStyle(
+          color: context.secondaryText,
+          fontSize: 14,
+          height: 1.4,
+        ),
       ),
     );
   }
