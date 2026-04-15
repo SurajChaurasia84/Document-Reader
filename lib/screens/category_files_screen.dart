@@ -156,7 +156,7 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
                     final selected = filter == _formatFilter;
                     final activeColor = selected
                         ? AppFile.getColorForLabel(filter.label,
-                            fallback: context.selectedAccent)
+                            fallback: context.primaryAccent)
                         : context.selectedAccent;
                     return _FormatChip(
                       label: filter.label,

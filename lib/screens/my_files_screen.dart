@@ -204,7 +204,7 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                     final selected = filter == _filter;
                     final activeColor = selected
                         ? AppFile.getColorForLabel(filter.label,
-                            fallback: context.selectedAccent)
+                            fallback: context.primaryAccent)
                         : context.selectedAccent;
                     return _FilterChipButton(
                       label: filter.label,
@@ -599,7 +599,7 @@ class _SourceTabs extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 2),
               child: Material(
                 color: selected
-                    ? context.selectedAccent.withValues(alpha: 0.14)
+                    ? context.primaryAccent.withValues(alpha: 0.14)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(12),
                 child: InkWell(
@@ -610,7 +610,7 @@ class _SourceTabs extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       border: selected
-                          ? Border.all(color: context.selectedAccent)
+                          ? Border.all(color: context.primaryAccent)
                           : null,
                     ),
                     child: Center(
@@ -618,7 +618,7 @@ class _SourceTabs extends StatelessWidget {
                         source.label,
                         style: TextStyle(
                           color: selected
-                              ? context.selectedAccent
+                              ? context.primaryAccent
                               : context.secondaryText,
                           fontSize: 13,
                           fontWeight: FontWeight.w700,

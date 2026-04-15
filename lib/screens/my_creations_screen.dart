@@ -136,7 +136,7 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
                     itemBuilder: (context, index) {
                       final filter = CreationFilter.values[index];
                       final activeColor = filter == CreationFilter.all
-                          ? context.selectedAccent
+                          ? context.primaryAccent
                           : AppFile.getColorForLabel('pdf');
                       return _CreationChip(
                         label: filter.label,

@@ -42,6 +42,9 @@ extension ThemeSurfaceX on BuildContext {
 
   Color get selectedAccent => const Color(0xFFFFB020);
 
+  Color get primaryAccent =>
+      isDarkMode ? const Color(0xFF00E5FF) : const Color(0xFF1D4ED8);
+
   Color get toolbarBlueStart =>
       isDarkMode ? const Color(0xFF203D78) : const Color(0xFFDDE8FF);
 
