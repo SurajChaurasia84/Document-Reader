@@ -99,13 +99,6 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.article_rounded,
         color: const Color(0xFF586274),
       ),
-      _HomeCategory(
-        title: 'Archive files',
-        count: controller.internalFiles.length,
-        files: controller.internalFiles,
-        icon: Icons.inventory_2_rounded,
-        color: const Color(0xFFB1B7C3),
-      ),
     ];
 
     final places = <_PlaceAction>[
