@@ -2,14 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
-import '../utils/formatters.dart';
 import '../utils/instant_page_route.dart';
 import '../utils/theme_utils.dart';
 import '../widgets/fixed_top_header.dart';
+import '../widgets/recent_file_card.dart';
 import 'category_files_screen.dart';
 import 'document_viewer_screen.dart';
 import 'my_creations_screen.dart';
@@ -245,11 +245,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       .map(
                         (file) => Padding(
                           padding: const EdgeInsets.only(bottom: 10),
-                          child: _RecentFileCard(
+                        child: RecentFileCard(
                             file: file,
                             onTap: () => _openViewer(context, file),
-                            onFavoriteTap: () =>
-                                controller.toggleFavorite(file),
+                            onFavorite: () => controller.toggleFavorite(file),
+                            onShare: () => _shareFile(context, file),
+                            onSave: () => _saveFile(context, controller, file),
+                            onDelete: () => _deleteFile(context, controller, file),
                           ),
                         ),
                       ),
@@ -308,8 +310,88 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       Navigator.of(
         context,
-      ).push(InstantPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)));
+      ).push(MaterialPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)));
     });
+  }
+
+  Future<void> _shareFile(BuildContext context, AppFile file) async {
+    if (!await File(file.path).exists()) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This file is no longer available.')),
+      );
+      return;
+    }
+
+    await Share.shareXFiles(
+      <XFile>[XFile(file.path)],
+      text: 'Shared from PDF Studio',
+      subject: file.name,
+    );
+  }
+
+  Future<void> _saveFile(
+    BuildContext context,
+    AppController controller,
+    AppFile file,
+  ) async {
+    try {
+      final savedPath = await controller.fileService.saveToPdfStudioFolder(file.path);
+      await controller.refreshAll();
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Saved to $savedPath')),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
+  Future<void> _deleteFile(
+    BuildContext context,
+    AppController controller,
+    AppFile file,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete file?'),
+          content: Text('Are you sure you want to delete "${file.name}"?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    await controller.deleteManagedFile(file);
+    if (!context.mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('File deleted')),
+    );
   }
 
   void _openCategory(BuildContext context, _HomeCategory category) {
@@ -624,155 +706,7 @@ class _PlaceCard extends StatelessWidget {
   }
 }
 
-class _RecentFileCard extends StatelessWidget {
-  const _RecentFileCard({
-    required this.file,
-    required this.onTap,
-    required this.onFavoriteTap,
-  });
 
-  final AppFile file;
-  final VoidCallback onTap;
-  final VoidCallback onFavoriteTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: context.panelBackground,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            children: <Widget>[
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: _fileColor(file.extension),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  file.extension.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      file.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.primaryText,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                    ),
-                      const SizedBox(height: 2),
-                      _RecentFileMetaText(
-                        file: file,
-                        textStyle: TextStyle(
-                          color: context.secondaryText,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-              ),
-              IconButton(
-                onPressed: onFavoriteTap,
-                icon: Icon(
-                  file.isFavorite
-                      ? Icons.star_rounded
-                      : Icons.star_border_rounded,
-                  color: file.isFavorite
-                      ? const Color(0xFFF3B63F)
-                      : context.secondaryText,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  static Color _fileColor(String extension) {
-    switch (extension) {
-      case 'pdf':
-        return const Color(0xFFD93025);
-      case 'docx':
-        return const Color(0xFF2F6FD6);
-      case 'xlsx':
-        return const Color(0xFF16A34A);
-      case 'pptx':
-        return const Color(0xFFE9742B);
-      case 'txt':
-        return const Color(0xFF586274);
-      default:
-        return const Color(0xFF6B7280);
-    }
-  }
-}
-
-class _RecentFileMetaText extends StatelessWidget {
-  const _RecentFileMetaText({required this.file, required this.textStyle});
-
-  final AppFile file;
-  final TextStyle textStyle;
-
-  static final Map<String, Future<String>> _pageCountCache =
-      <String, Future<String>>{};
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<String>(
-      future: _pageCountCache.putIfAbsent(file.path, () => _pageCountLabel(file)),
-      builder: (context, snapshot) {
-        final pageLabel = snapshot.data ?? _fallbackPageLabel(file);
-        return Text(
-          '$pageLabel  •  ${formatFileSize(file.size)}  •  ${formatDate(file.modifiedAt)}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: textStyle,
-        );
-      },
-    );
-  }
-
-  static Future<String> _pageCountLabel(AppFile file) async {
-    if (file.isPdf && file.size <= 15 * 1024 * 1024) {
-      try {
-        final document = PdfDocument(inputBytes: await File(file.path).readAsBytes());
-        final count = document.pages.count;
-        document.dispose();
-        return count == 1 ? '1 page' : '$count pages';
-      } catch (_) {
-        return _fallbackPageLabel(file);
-      }
-    }
-
-    return _fallbackPageLabel(file);
-  }
-
-  static String _fallbackPageLabel(AppFile file) {
-    if (file.isImage) {
-      return '1 page';
-    }
-    return '-- pages';
-  }
-}
 
 class _EmptyFilesCard extends StatelessWidget {
   const _EmptyFilesCard();
