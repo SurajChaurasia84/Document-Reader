@@ -154,9 +154,14 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
                   itemBuilder: (context, index) {
                     final filter = FileFormatFilter.values[index];
                     final selected = filter == _formatFilter;
+                    final activeColor = selected
+                        ? AppFile.getColorForLabel(filter.label,
+                            fallback: context.selectedAccent)
+                        : context.selectedAccent;
                     return _FormatChip(
                       label: filter.label,
                       selected: selected,
+                      activeColor: activeColor,
                       onTap: () {
                         setState(() {
                           _formatFilter = filter;
@@ -373,19 +378,19 @@ class _FormatChip extends StatelessWidget {
   const _FormatChip({
     required this.label,
     required this.selected,
+    required this.activeColor,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
+  final Color activeColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? context.selectedAccent.withValues(alpha: 0.12)
-          : context.softPanel,
+      color: selected ? activeColor.withValues(alpha: 0.12) : context.softPanel,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -395,17 +400,13 @@ class _FormatChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected
-                  ? context.selectedAccent
-                  : context.borderColor,
+              color: selected ? activeColor : context.borderColor,
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected
-                  ? context.selectedAccent
-                  : context.secondaryText,
+              color: selected ? activeColor : context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),

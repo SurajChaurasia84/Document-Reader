@@ -43,25 +43,7 @@ class FileTile extends StatelessWidget {
   }
 
   static Color _containerColor(AppFile file) {
-    if (file.assetIcon != null) {
-      switch (file.extension.toLowerCase()) {
-        case 'pdf':
-          return const Color(0xFFFFEAEA);
-        case 'doc':
-        case 'docx':
-          return const Color(0xFFE8F0FF);
-        case 'xls':
-        case 'xlsx':
-          return const Color(0xFFE6F4EA);
-        case 'ppt':
-        case 'pptx':
-          return const Color(0xFFFFF4E5);
-        case 'txt':
-          return const Color(0xFFF1F3F4);
-        default:
-          return const Color(0xFFF3F4F6);
-      }
-    }
+    if (file.assetIcon != null) return Colors.transparent;
 
     switch (file.extension.toLowerCase()) {
       case 'pdf':
@@ -100,8 +82,8 @@ class FileTile extends StatelessWidget {
               child: file.assetIcon != null
                   ? Image.asset(
                       file.assetIcon!,
-                      width: 26,
-                      height: 26,
+                      width: 36,
+                      height: 36,
                       fit: BoxFit.contain,
                     )
                   : Icon(

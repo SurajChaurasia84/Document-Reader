@@ -135,9 +135,13 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
                         const SizedBox(width: 8),
                     itemBuilder: (context, index) {
                       final filter = CreationFilter.values[index];
+                      final activeColor = filter == CreationFilter.all
+                          ? context.selectedAccent
+                          : AppFile.getColorForLabel('pdf');
                       return _CreationChip(
                         label: filter.label,
                         selected: filter == _filter,
+                        activeColor: activeColor,
                         onTap: () {
                           setState(() {
                             _filter = filter;
@@ -404,19 +408,19 @@ class _CreationChip extends StatelessWidget {
   const _CreationChip({
     required this.label,
     required this.selected,
+    required this.activeColor,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
+  final Color activeColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? context.selectedAccent.withValues(alpha: 0.12)
-          : context.softPanel,
+      color: selected ? activeColor.withValues(alpha: 0.12) : context.softPanel,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -426,17 +430,13 @@ class _CreationChip extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected
-                  ? context.selectedAccent
-                  : context.borderColor,
+              color: selected ? activeColor : context.borderColor,
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected
-                  ? context.selectedAccent
-                  : context.secondaryText,
+              color: selected ? activeColor : context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -486,15 +486,24 @@ class _CreationFileCard extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: context.softPanel,
+                  color: Colors.transparent,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  file.isImage
-                      ? Icons.image_rounded
-                      : Icons.picture_as_pdf_rounded,
-                  color: const Color(0xFFD93025),
-                ),
+                child: file.assetIcon != null
+                    ? Center(
+                        child: Image.asset(
+                          file.assetIcon!,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : Icon(
+                        file.isImage
+                            ? Icons.image_rounded
+                            : Icons.picture_as_pdf_rounded,
+                        color: const Color(0xFFD93025),
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(

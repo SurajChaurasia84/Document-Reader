@@ -202,9 +202,14 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                   itemBuilder: (context, index) {
                     final filter = MyFilesFilter.values[index];
                     final selected = filter == _filter;
+                    final activeColor = selected
+                        ? AppFile.getColorForLabel(filter.label,
+                            fallback: context.selectedAccent)
+                        : context.selectedAccent;
                     return _FilterChipButton(
                       label: filter.label,
                       selected: selected,
+                      activeColor: activeColor,
                       onTap: () {
                         setState(() {
                           _filter = filter;
@@ -697,19 +702,19 @@ class _FilterChipButton extends StatelessWidget {
   const _FilterChipButton({
     required this.label,
     required this.selected,
+    required this.activeColor,
     required this.onTap,
   });
 
   final String label;
   final bool selected;
+  final Color activeColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? context.selectedAccent.withValues(alpha: 0.12)
-          : context.softPanel,
+      color: selected ? activeColor.withValues(alpha: 0.12) : context.softPanel,
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
@@ -719,17 +724,13 @@ class _FilterChipButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected
-                  ? context.selectedAccent
-                  : context.borderColor,
+              color: selected ? activeColor : context.borderColor,
             ),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected
-                  ? context.selectedAccent
-                  : context.secondaryText,
+              color: selected ? activeColor : context.secondaryText,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -767,18 +768,25 @@ class _MyFileCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _fileColor(file.extension),
+                  color: _fileColor(file),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  file.extension.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                child: file.assetIcon != null
+                    ? Image.asset(
+                        file.assetIcon!,
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.contain,
+                      )
+                    : Text(
+                        file.extension.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -828,8 +836,9 @@ class _MyFileCard extends StatelessWidget {
     );
   }
 
-  static Color _fileColor(String extension) {
-    switch (extension) {
+  static Color _fileColor(AppFile file) {
+    if (file.assetIcon != null) return Colors.transparent;
+    switch (file.extension.toLowerCase()) {
       case 'pdf':
         return const Color(0xFFD93025);
       case 'doc':
@@ -885,18 +894,25 @@ class _MyFileGridCard extends StatelessWidget {
                     width: 38,
                     height: 38,
                     decoration: BoxDecoration(
-                      color: _MyFileCard._fileColor(file.extension),
+                      color: _MyFileCard._fileColor(file),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      file.extension.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+                    child: file.assetIcon != null
+                        ? Image.asset(
+                            file.assetIcon!,
+                            width: 30,
+                            height: 30,
+                            fit: BoxFit.contain,
+                          )
+                        : Text(
+                            file.extension.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                   ),
                   const Spacer(),
                   IconButton(

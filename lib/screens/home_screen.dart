@@ -597,22 +597,22 @@ class _CategoryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
               Container(
-                width: 38,
-                height: 38,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: category.color,
-                  borderRadius: BorderRadius.circular(10),
+                  color: category.assetIcon != null ? Colors.transparent : category.color,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: category.assetIcon != null
                     ? Center(
                         child: Image.asset(
                           category.assetIcon!,
-                          width: 20,
-                          height: 20,
+                          width: 36,
+                          height: 36,
                           fit: BoxFit.contain,
                         ),
                       )
-                    : Icon(category.icon, color: Colors.white, size: 20),
+                    : Icon(category.icon, color: Colors.white, size: 24),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -722,6 +722,7 @@ class _EmptyFilesCard extends StatelessWidget {
   }
 }
 
+class _HomeCategory {
   const _HomeCategory({
     required this.title,
     required this.count,

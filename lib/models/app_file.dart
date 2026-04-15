@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 class AppFile {
@@ -103,5 +104,21 @@ class AppFile {
       modifiedAt: stat.modified,
       isFavorite: isFavorite,
     );
+  }
+
+  static Color getColorForLabel(String label, {Color? fallback}) {
+    final l = label.toLowerCase();
+    if (l.contains('pdf')) return const Color(0xFFD93025);
+    if (l.contains('word') || l == 'doc' || l == 'docx') {
+      return const Color(0xFF2D87F3);
+    }
+    if (l.contains('excel') || l == 'xls' || l == 'xlsx') {
+      return const Color(0xFF16A34A);
+    }
+    if (l.contains('ppt') || l == 'pptx' || l.contains('powerpoint')) {
+      return const Color(0xFFE9742B);
+    }
+    if (l.contains('text') || l == 'txt') return const Color(0xFF586274);
+    return fallback ?? const Color(0xFF2D87F3);
   }
 }
