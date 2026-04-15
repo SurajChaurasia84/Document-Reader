@@ -17,6 +17,51 @@ class FileTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onFavoriteTap;
 
+  static IconData _fileIcon(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return Icons.picture_as_pdf_rounded;
+      case 'doc':
+      case 'docx':
+        return Icons.description_rounded;
+      case 'xls':
+      case 'xlsx':
+        return Icons.grid_on_rounded;
+      case 'ppt':
+      case 'pptx':
+        return Icons.slideshow_rounded;
+      case 'txt':
+        return Icons.notes_rounded;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return Icons.image_rounded;
+      default:
+        return Icons.insert_drive_file_rounded;
+    }
+  }
+
+  static Color _fileColor(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return const Color(0xFFD93025);
+      case 'doc':
+      case 'docx':
+        return const Color(0xFF2F6FD6);
+      case 'xls':
+      case 'xlsx':
+        return const Color(0xFF16A34A);
+      case 'ppt':
+      case 'pptx':
+        return const Color(0xFFE9742B);
+      case 'txt':
+        return const Color(0xFF586274);
+      default:
+        return const Color(0xFF6B7280);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GlassCard(
@@ -29,14 +74,13 @@ class FileTile extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              color: context.isDarkMode
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : const Color(0xFFE9EEF8),
+              color: _fileColor(file.extension),
             ),
             child: Center(
-              child: Text(
-                file.displayType,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+              child: Icon(
+                _fileIcon(file.extension),
+                color: Colors.white,
+                size: 24,
               ),
             ),
           ),
