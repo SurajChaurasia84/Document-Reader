@@ -68,36 +68,36 @@ class _HomeScreenState extends State<HomeScreen> {
         title: 'PDF files',
         count: allFiles.where((file) => file.extension == 'pdf').length,
         files: allFiles.where((file) => file.extension == 'pdf').toList(),
-        icon: Icons.picture_as_pdf_rounded,
-        color: const Color(0xFFD93025),
+        assetIcon: 'assets/pdf.png',
+        color: const Color(0xFFFFEAEA),
       ),
       _HomeCategory(
         title: 'Word files',
         count: allFiles.where((file) => file.extension == 'docx').length,
         files: allFiles.where((file) => file.extension == 'docx').toList(),
-        icon: Icons.description_rounded,
-        color: const Color(0xFFF3B63F),
+        assetIcon: 'assets/doc.png',
+        color: const Color(0xFFE8F0FF),
       ),
       _HomeCategory(
         title: 'Excel files',
         count: allFiles.where((file) => file.extension == 'xlsx').length,
         files: allFiles.where((file) => file.extension == 'xlsx').toList(),
-        icon: Icons.table_chart_rounded,
-        color: const Color(0xFF16A34A),
+        assetIcon: 'assets/xls.png',
+        color: const Color(0xFFE6F4EA),
       ),
       _HomeCategory(
         title: 'PPT files',
         count: allFiles.where((file) => file.extension == 'pptx').length,
         files: allFiles.where((file) => file.extension == 'pptx').toList(),
-        icon: Icons.slideshow_rounded,
-        color: const Color(0xFFE9742B),
+        assetIcon: 'assets/ppt.png',
+        color: const Color(0xFFFFF4E5),
       ),
       _HomeCategory(
         title: 'TXT files',
         count: allFiles.where((file) => file.extension == 'txt').length,
         files: allFiles.where((file) => file.extension == 'txt').toList(),
-        icon: Icons.article_rounded,
-        color: const Color(0xFF586274),
+        assetIcon: 'assets/txt.png',
+        color: const Color(0xFFF1F3F4),
       ),
     ];
 
@@ -603,7 +603,16 @@ class _CategoryCard extends StatelessWidget {
                   color: category.color,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(category.icon, color: Colors.white, size: 20),
+                child: category.assetIcon != null
+                    ? Center(
+                        child: Image.asset(
+                          category.assetIcon!,
+                          width: 20,
+                          height: 20,
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : Icon(category.icon, color: Colors.white, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -713,12 +722,12 @@ class _EmptyFilesCard extends StatelessWidget {
   }
 }
 
-class _HomeCategory {
   const _HomeCategory({
     required this.title,
     required this.count,
     required this.files,
-    required this.icon,
+    this.icon = Icons.insert_drive_file_rounded,
+    this.assetIcon,
     required this.color,
   });
 
@@ -726,6 +735,7 @@ class _HomeCategory {
   final int count;
   final List<AppFile> files;
   final IconData icon;
+  final String? assetIcon;
   final Color color;
 }
 

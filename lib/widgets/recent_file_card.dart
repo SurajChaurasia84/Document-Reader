@@ -43,15 +43,22 @@ class RecentFileCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _fileColor(file.extension),
+                  color: _containerColor(file),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  _fileIcon(file.extension),
-                  color: Colors.white,
-                  size: 20,
-                ),
+                child: file.assetIcon != null
+                    ? Image.asset(
+                        file.assetIcon!,
+                        width: 22,
+                        height: 22,
+                        fit: BoxFit.contain,
+                      )
+                    : Icon(
+                        _fileIcon(file.extension),
+                        color: Colors.white,
+                        size: 20,
+                      ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -165,8 +172,28 @@ class RecentFileCard extends StatelessWidget {
     }
   }
 
-  static Color _fileColor(String extension) {
-    switch (extension.toLowerCase()) {
+  static Color _containerColor(AppFile file) {
+    if (file.assetIcon != null) {
+      switch (file.extension.toLowerCase()) {
+        case 'pdf':
+          return const Color(0xFFFFEAEA);
+        case 'doc':
+        case 'docx':
+          return const Color(0xFFE8F0FF);
+        case 'xls':
+        case 'xlsx':
+          return const Color(0xFFE6F4EA);
+        case 'ppt':
+        case 'pptx':
+          return const Color(0xFFFFF4E5);
+        case 'txt':
+          return const Color(0xFFF1F3F4);
+        default:
+          return const Color(0xFFF3F4F6);
+      }
+    }
+
+    switch (file.extension.toLowerCase()) {
       case 'pdf':
         return const Color(0xFFD93025);
       case 'doc':

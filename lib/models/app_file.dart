@@ -27,6 +27,23 @@ class AppFile {
       ['docx', 'xlsx', 'pptx'].contains(extension.toLowerCase());
   String get displayType => extension.toUpperCase();
 
+  String? get assetIcon {
+    switch (extension.toLowerCase()) {
+      case 'pdf':
+        return 'assets/pdf.png';
+      case 'docx':
+        return 'assets/doc.png';
+      case 'xlsx':
+        return 'assets/xls.png';
+      case 'pptx':
+        return 'assets/ppt.png';
+      case 'txt':
+        return 'assets/txt.png';
+      default:
+        return null;
+    }
+  }
+
   AppFile copyWith({
     String? path,
     String? name,
