@@ -156,16 +156,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
                     );
                   },
                 ),
-              if (controller.statusMessage != null) ...<Widget>[
-                const SizedBox(height: 16),
-                Text(
-                  controller.statusMessage!,
-                  style: TextStyle(
-                    color: context.secondaryText,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
             ],
           ),
         ),

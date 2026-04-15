@@ -248,17 +248,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ),
-                if (controller.statusMessage != null) ...<Widget>[
-                  const SizedBox(height: 12),
-                  Text(
-                    controller.statusMessage!,
-                    style: TextStyle(
-                      color: context.selectedAccent,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
