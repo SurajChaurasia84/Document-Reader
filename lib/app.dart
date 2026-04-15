@@ -36,7 +36,7 @@ class DocReaderApp extends StatelessWidget {
           final themeMode = controller.isDarkMode ? ThemeMode.dark : ThemeMode.light;
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'PureDoc',
+            title: 'PDF Studio',
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeMode,

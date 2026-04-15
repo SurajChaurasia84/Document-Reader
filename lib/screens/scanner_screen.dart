@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import '../utils/instant_page_route.dart';
 import '../widgets/glass_card.dart';
 import 'document_viewer_screen.dart';
 
@@ -115,7 +116,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                                 return;
                               }
                               Navigator.of(context).pushReplacement(
-                                MaterialPageRoute<void>(
+                                InstantPageRoute<void>(
                                   builder: (_) =>
                                       DocumentViewerScreen(file: scannedFile),
                                 ),

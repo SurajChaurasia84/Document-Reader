@@ -9,7 +9,7 @@
     <uses-permission android:name="com.android.vending.BILLING" />
 
     <application
-        android:label="PureDoc"
+        android:label="PDF Studio"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">

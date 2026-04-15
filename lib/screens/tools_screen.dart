@@ -9,12 +9,14 @@ import '../utils/theme_utils.dart';
 import '../widgets/fixed_top_header.dart';
 import '../widgets/tool_tile.dart';
 import 'compress_pdf_screen.dart';
+import 'edit_pdf_screen.dart';
 import 'add_page_numbers_screen.dart';
 import 'image_to_pdf_screen.dart';
 import 'merge_pdf_screen.dart';
 import 'protect_pdf_screen.dart';
 import 'protected_pdf_picker_screen.dart';
 import 'scanner_screen.dart';
+import 'sign_pdf_screen.dart';
 import 'split_pdf_screen.dart';
 import 'unlock_pdf_screen.dart';
 import 'word_to_pdf_screen.dart';
@@ -315,6 +317,36 @@ class _ToolsScreenState extends State<ToolsScreen> {
           ),
         );
         break;
+      case 'sign_pdf':
+        final files = await controller.fileService.pickPdfFiles(allowMultiple: false);
+        if (files.isEmpty) {
+          controller.setStatus('Pick a PDF to sign.');
+          break;
+        }
+        if (!context.mounted) {
+          return;
+        }
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SignPdfScreen(inputPath: files.first),
+          ),
+        );
+        break;
+      case 'edit_pdf':
+        final files = await controller.fileService.pickPdfFiles(allowMultiple: false);
+        if (files.isEmpty) {
+          controller.setStatus('Pick a PDF to edit.');
+          break;
+        }
+        if (!context.mounted) {
+          return;
+        }
+        await Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => EditPdfScreen(inputPath: files.first),
+          ),
+        );
+        break;
       case 'ocr_pdf':
         controller.setStatus('Open a file to run OCR from the viewer screen.');
         break;
@@ -377,7 +409,7 @@ class _ToolListTile extends StatelessWidget {
                   children: <Widget>[
                     Center(
                       child: Icon(
-                        IconData(tool.icon, fontFamily: 'MaterialIcons'),
+                        tool.icon,
                         color: context.primaryText,
                         size: 22,
                       ),

@@ -9,6 +9,7 @@ import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../services/pdf_service.dart';
 import '../utils/formatters.dart';
+import '../utils/instant_page_route.dart';
 import '../utils/theme_utils.dart';
 import 'document_viewer_screen.dart';
 
@@ -216,7 +217,7 @@ class _AddPageNumbersScreenState extends State<AddPageNumbersScreen> {
       return;
     }
     Navigator.of(this.context).pushReplacement(
-      MaterialPageRoute<void>(
+      InstantPageRoute<void>(
         builder: (_) => DocumentViewerScreen(file: numberedFile),
       ),
     );

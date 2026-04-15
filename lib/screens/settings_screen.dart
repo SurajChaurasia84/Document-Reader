@@ -23,9 +23,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   static const String _playStoreUrl =
-      'https://play.google.com/store/apps/details?id=com.example.doc_reader';
+      'https://play.google.com/store/apps/details?id=com.example.pdf_studio';
   static const String _shareMessage =
-      'Try PureDoc for fast offline document reading and PDF tools.\n\n$_playStoreUrl';
+      'Try PDF Studio for fast offline document reading and PDF tools.\n\n$_playStoreUrl';
 
   late final StorageInfoService _storageInfoService = StorageInfoService();
   late Future<StorageOverview?> _storageOverviewFuture =
@@ -253,7 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       children: <Widget>[
                         Text(
-                          'PureDoc',
+                          'PDF Studio',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: context.primaryText,
@@ -300,7 +300,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       scheme: 'mailto',
       path: 'support@puredoc.app',
       queryParameters: <String, String>{
-        'subject': 'PureDoc Support',
+        'subject': 'PDF Studio Support',
       },
     );
 
@@ -344,7 +344,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   onTap: () async {
                     Navigator.of(sheetContext).pop();
-                    await Share.share(_shareMessage, subject: 'PureDoc');
+                    await Share.share(_shareMessage, subject: 'PDF Studio');
                   },
                 ),
                 ListTile(
@@ -589,10 +589,10 @@ class _InfoPage extends StatelessWidget {
 }
 
 const String _termsText =
-    'By using PureDoc, you agree to use the app responsibly and only with files you have permission to access. PureDoc is provided as-is, and some tools may vary based on device compatibility. We may improve features over time to keep the app stable and useful.';
+    'By using PDF Studio, you agree to use the app responsibly and only with files you have permission to access. PDF Studio is provided as-is, and the app is not responsible for any misuse of documents or device resources. Some features may vary by device and may require permissions to work correctly. We may update or improve the app over time to keep it stable, secure, and useful.';
 
 const String _privacyText =
-    'PureDoc is designed to work offline-first. Your files stay on your device unless you explicitly share or export them. We do not require account signup for core usage, and the app avoids unnecessary data collection.';
+    'PDF Studio is designed to work offline-first. Your files stay on your device unless you explicitly share or export them. We do not require account signup for core usage, and the app avoids unnecessary data collection.';
 
 const String _aboutText =
-    'PureDoc is built to make document reading and lightweight PDF work fast, clean, and offline-friendly. The goal is to keep your file workflow simple without making you wait through cluttered screens.';
+    'PDF Studio is built to make document reading and lightweight PDF work fast, clean, and offline-friendly. The goal is to keep your file workflow simple without making you wait through cluttered screens.';

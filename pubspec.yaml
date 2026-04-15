@@ -1,4 +1,4 @@
-name: doc_reader
+name: pdf_studio
 description: "Offline-first document reader, PDF toolkit, scanner, OCR, and AI tools."
 publish_to: 'none'
 version: 1.0.0+1

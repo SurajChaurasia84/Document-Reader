@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../utils/formatters.dart';
+import '../utils/instant_page_route.dart';
 import 'document_viewer_screen.dart';
 
 class ProtectPdfScreen extends StatefulWidget {
@@ -234,7 +235,7 @@ class _ProtectPdfScreenState extends State<ProtectPdfScreen> {
       return;
     }
     Navigator.of(this.context).pushReplacement(
-      MaterialPageRoute<void>(
+      InstantPageRoute<void>(
         builder: (_) => DocumentViewerScreen(file: protectedFile),
       ),
     );

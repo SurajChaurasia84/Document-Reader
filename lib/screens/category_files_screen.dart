@@ -2,11 +2,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import '../utils/instant_page_route.dart';
 import '../utils/theme_utils.dart';
-import '../widgets/file_tile.dart';
+import '../widgets/recent_file_card.dart';
 import 'document_viewer_screen.dart';
 
 enum FileSortOption {
@@ -50,11 +52,20 @@ class CategoryFilesScreen extends StatefulWidget {
 class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
   FileSortOption _sortOption = FileSortOption.newest;
   FileFormatFilter _formatFilter = FileFormatFilter.all;
+  String _searchQuery = '';
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
-    final visibleFiles = _filteredFiles(widget.files, _formatFilter);
+    final visibleFiles = _filteredFiles(widget.files, _formatFilter, _searchQuery);
     final sortedFiles = _sortedFiles(visibleFiles, _sortOption);
     final normalizedTitle = widget.title.toLowerCase();
     final showFormatFilters =
@@ -64,11 +75,52 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
       appBar: AppBar(
         elevation: 0,
         surfaceTintColor: Colors.transparent,
-        title: Text(widget.title),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                style: const TextStyle(color: Colors.white),
+                cursorColor: Colors.white,
+                decoration: const InputDecoration(
+                  border: InputBorder.none,
+                  hintText: 'Search files...',
+                  hintStyle: TextStyle(color: Colors.white70),
+                ),
+              )
+            : Text(widget.title),
         actions: <Widget>[
+          IconButton(
+            icon: Icon(
+              _isSearching ? Icons.close_rounded : Icons.search_rounded,
+              color: context.primaryText,
+            ),
+            tooltip: _isSearching ? 'Close search' : 'Search',
+            onPressed: () {
+              setState(() {
+                if (_isSearching) {
+                  _isSearching = false;
+                  _searchQuery = '';
+                  _searchController.clear();
+                } else {
+                  _isSearching = true;
+                  Future.microtask(() => _searchController.selection = TextSelection.collapsed(
+                        offset: _searchController.text.length,
+                      ));
+                }
+              });
+            },
+          ),
           PopupMenuButton<FileSortOption>(
             tooltip: 'Sort',
-            icon: const Icon(Icons.sort_rounded),
+            icon: Icon(
+              Icons.sort_rounded,
+              color: context.primaryText,
+            ),
             initialValue: _sortOption,
             onSelected: (value) {
               setState(() {
@@ -132,7 +184,7 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
                           const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final file = sortedFiles[index];
-                        return FileTile(
+                        return RecentFileCard(
                           file: file,
                           onTap: () async {
                             if (!await File(file.path).exists()) {
@@ -152,12 +204,90 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
                             }
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
-                                builder: (_) =>
-                                    DocumentViewerScreen(file: file),
+                                builder: (_) => DocumentViewerScreen(file: file),
                               ),
                             );
                           },
-                          onFavoriteTap: () => controller.toggleFavorite(file),
+                          onFavorite: () => controller.toggleFavorite(file),
+                          onShare: () async {
+                            if (!await File(file.path).exists()) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'This file is no longer available on your device.',
+                                    ),
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+                            await Share.shareXFiles(
+                              <XFile>[XFile(file.path)],
+                              text: 'Shared from PDF Studio',
+                              subject: file.name,
+                            );
+                          },
+                          onSave: () async {
+                            try {
+                              final savedPath = await controller.fileService
+                                  .saveToPdfStudioFolder(file.path);
+                              await controller.refreshAll();
+                              if (!context.mounted) {
+                                return;
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Saved to $savedPath')),
+                              );
+                            } catch (error) {
+                              if (!context.mounted) {
+                                return;
+                              }
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    error.toString().replaceFirst('Exception: ', ''),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          onDelete: () async {
+                            final shouldDelete = await showDialog<bool>(
+                              context: context,
+                              builder: (dialogContext) {
+                                return AlertDialog(
+                                  title: const Text('Delete file?'),
+                                  content: Text(
+                                      'Are you sure you want to delete "${file.name}"?'),
+                                  actions: <Widget>[
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () =>
+                                          Navigator.of(dialogContext).pop(true),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+
+                            if (shouldDelete != true) {
+                              return;
+                            }
+
+                            await controller.deleteManagedFile(file);
+                            if (!context.mounted) {
+                              return;
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('File deleted')),
+                            );
+                          },
                         );
                       },
                     ),
@@ -171,29 +301,48 @@ class _CategoryFilesScreenState extends State<CategoryFilesScreen> {
   List<AppFile> _filteredFiles(
     List<AppFile> files,
     FileFormatFilter formatFilter,
+    String query,
   ) {
+    final lowerQuery = query.trim().toLowerCase();
+    List<AppFile> filtered;
     switch (formatFilter) {
       case FileFormatFilter.all:
-        return List<AppFile>.from(files);
+        filtered = List<AppFile>.from(files);
+        break;
       case FileFormatFilter.pdf:
-        return files.where((file) => file.extension == 'pdf').toList();
+        filtered = files.where((file) => file.extension == 'pdf').toList();
+        break;
       case FileFormatFilter.word:
-        return files
+        filtered = files
             .where((file) => <String>['doc', 'docx'].contains(file.extension))
             .toList();
+        break;
       case FileFormatFilter.excel:
-        return files
+        filtered = files
             .where((file) => <String>['xls', 'xlsx'].contains(file.extension))
             .toList();
+        break;
       case FileFormatFilter.ppt:
-        return files
+        filtered = files
             .where((file) => <String>['ppt', 'pptx'].contains(file.extension))
             .toList();
+        break;
       case FileFormatFilter.text:
-        return files
+        filtered = files
             .where((file) => <String>['txt', 'csv', 'rtf'].contains(file.extension))
             .toList();
+        break;
     }
+
+    if (lowerQuery.isEmpty) {
+      return filtered;
+    }
+
+    return filtered.where((file) {
+      final name = file.name.toLowerCase();
+      final extension = file.extension.toLowerCase();
+      return name.contains(lowerQuery) || extension.contains(lowerQuery);
+    }).toList();
   }
 
   List<AppFile> _sortedFiles(List<AppFile> files, FileSortOption sortOption) {

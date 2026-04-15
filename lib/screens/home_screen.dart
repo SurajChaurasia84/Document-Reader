@@ -7,6 +7,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../utils/formatters.dart';
+import '../utils/instant_page_route.dart';
 import '../utils/theme_utils.dart';
 import '../widgets/fixed_top_header.dart';
 import 'category_files_screen.dart';
@@ -146,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: <Widget>[
         FixedTopHeader(
-          title: 'PureDoc',
+          title: 'PDF Studio',
           trailing: IgnorePointer(
             ignoring: !_searchCollapsed,
             child: AnimatedOpacity(
@@ -305,9 +306,9 @@ class _HomeScreenState extends State<HomeScreen> {
         );
         return;
       }
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)),
-      );
+      Navigator.of(
+        context,
+      ).push(InstantPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)));
     });
   }
 

@@ -17,7 +17,9 @@ class PdfService {
         'scanner': <String>['pdf'],
         'compressed': <String>['pdf'],
         'protected': <String>['pdf'],
+        'signed': <String>['pdf'],
         'numbered': <String>['pdf'],
+        'edited': <String>['pdf'],
         'images': <String>['png'],
       };
 
@@ -353,6 +355,183 @@ class PdfService {
     return filePath;
   }
 
+  Future<String> signPdf(
+    String inputPath, {
+    required Uint8List signatureBytes,
+    required int pageNumber,
+    required PdfSignaturePlacement placement,
+    String? outputFileName,
+  }) async {
+    if (signatureBytes.isEmpty) {
+      throw Exception('Draw a signature before saving.');
+    }
+
+    final inputBytes = await File(inputPath).readAsBytes();
+    final document = PdfDocument(inputBytes: inputBytes);
+    if (pageNumber < 1 || pageNumber > document.pages.count) {
+      document.dispose();
+      throw Exception('Choose a valid page number.');
+    }
+
+    final page = document.pages[pageNumber - 1];
+    final pageSize = page.getClientSize();
+    final imageSize = await _readImageSize(signatureBytes);
+    final rect = _signatureBounds(
+      placement: placement,
+      pageWidth: pageSize.width,
+      pageHeight: pageSize.height,
+      imageWidth: imageSize.width,
+      imageHeight: imageSize.height,
+    );
+    page.graphics.drawImage(PdfBitmap(signatureBytes), rect);
+
+    final directory = await _outputDirectory('signed');
+    final safeName = _sanitizePdfFileName(outputFileName);
+    final filePath = p.join(
+      directory.path,
+      safeName ?? '${p.basenameWithoutExtension(inputPath)}_signed.pdf',
+    );
+    await File(filePath).writeAsBytes(document.saveSync(), flush: true);
+    document.dispose();
+    return filePath;
+  }
+
+  Future<String> editPdfText(
+    String inputPath, {
+    required String text,
+    required int pageNumber,
+    required PdfEditTextPlacement placement,
+    double fontSize = 18,
+    String? outputFileName,
+  }) async {
+    final normalizedText = text.trim();
+    if (normalizedText.isEmpty) {
+      throw Exception('Enter text to add to the PDF.');
+    }
+
+    final inputBytes = await File(inputPath).readAsBytes();
+    final document = PdfDocument(inputBytes: inputBytes);
+    if (pageNumber < 1 || pageNumber > document.pages.count) {
+      document.dispose();
+      throw Exception('Choose a valid page number.');
+    }
+
+    final page = document.pages[pageNumber - 1];
+    final pageSize = page.getClientSize();
+    final font = PdfStandardFont(
+      PdfFontFamily.helvetica,
+      fontSize,
+      style: PdfFontStyle.bold,
+    );
+    final brush = PdfSolidBrush(PdfColor(24, 24, 27));
+    final measured = font.measureString(normalizedText);
+    final bounds = _editTextBounds(
+      placement: placement,
+      pageWidth: pageSize.width,
+      pageHeight: pageSize.height,
+      textWidth: measured.width,
+      textHeight: measured.height,
+    );
+    page.graphics.drawString(
+      normalizedText,
+      font,
+      brush: brush,
+      bounds: bounds,
+      format: PdfStringFormat(alignment: placement.alignment),
+    );
+
+    final directory = await _outputDirectory('edited');
+    final safeName = _sanitizePdfFileName(outputFileName);
+    final filePath = p.join(
+      directory.path,
+      safeName ?? '${p.basenameWithoutExtension(inputPath)}_edited.pdf',
+    );
+    await File(filePath).writeAsBytes(document.saveSync(), flush: true);
+    document.dispose();
+    return filePath;
+  }
+
+  Future<String> editPdfContent(
+    String inputPath, {
+    required Map<int, PdfPageEditBundle> editsByPage,
+    String? outputFileName,
+  }) async {
+    if (editsByPage.isEmpty) {
+      throw Exception('Add a drawing or text before saving.');
+    }
+
+    final inputBytes = await File(inputPath).readAsBytes();
+    final document = PdfDocument(inputBytes: inputBytes);
+
+    for (final entry in editsByPage.entries) {
+      final pageNumber = entry.key;
+      if (pageNumber < 1 || pageNumber > document.pages.count) {
+        continue;
+      }
+      final bundle = entry.value;
+      final page = document.pages[pageNumber - 1];
+      final pageSize = page.getClientSize();
+
+        for (final stroke in bundle.strokes) {
+          if (stroke.points.length < 2) {
+            continue;
+          }
+          final pen = PdfPen(
+            PdfColor(
+              (stroke.colorValue >> 16) & 0xFF,
+              (stroke.colorValue >> 8) & 0xFF,
+              stroke.colorValue & 0xFF,
+            ),
+            width: stroke.strokeWidth,
+          );
+        for (var i = 0; i < stroke.points.length - 1; i++) {
+          final current = stroke.points[i];
+          final next = stroke.points[i + 1];
+          page.graphics.drawLine(
+            pen,
+            Offset(
+              current.dx * pageSize.width,
+              current.dy * pageSize.height,
+            ),
+            Offset(
+              next.dx * pageSize.width,
+              next.dy * pageSize.height,
+            ),
+          );
+        }
+      }
+
+      for (final textItem in bundle.textItems) {
+        final font = PdfStandardFont(
+          PdfFontFamily.helvetica,
+          textItem.fontSize,
+          style: PdfFontStyle.bold,
+        );
+        page.graphics.drawString(
+          textItem.text,
+          font,
+          brush: PdfSolidBrush(PdfColor(24, 24, 27)),
+          bounds: Rect.fromLTWH(
+            textItem.normalizedOffset.dx * pageSize.width,
+            textItem.normalizedOffset.dy * pageSize.height,
+            pageSize.width * 0.55,
+            textItem.fontSize * 2.2,
+          ),
+        );
+      }
+    }
+
+    final directory = await _outputDirectory('edited');
+    final safeName = _sanitizePdfFileName(outputFileName);
+    final filePath = p.join(
+      directory.path,
+      safeName ?? '${p.basenameWithoutExtension(inputPath)}_edited.pdf',
+    );
+    await File(filePath).writeAsBytes(document.saveSync(), flush: true);
+    document.dispose();
+    return filePath;
+  }
+
   Future<Uint8List?> renderPageAsImage(String inputPath, int pageNumber) async {
     final document = await pdfx.PdfDocument.openFile(inputPath);
     final page = await document.getPage(pageNumber);
@@ -378,6 +557,14 @@ class PdfService {
           message.contains('encrypted') ||
           message.contains('cannot open an encrypted document');
     }
+  }
+
+  Future<int> getPageCount(String inputPath, {String? password}) async {
+    final bytes = await File(inputPath).readAsBytes();
+    final document = PdfDocument(inputBytes: bytes, password: password);
+    final count = document.pages.count;
+    document.dispose();
+    return count;
   }
 
   Future<List<AppFile>> listCreatedFiles({
@@ -572,6 +759,58 @@ class PdfService {
         );
     }
   }
+
+  Rect _signatureBounds({
+    required PdfSignaturePlacement placement,
+    required double pageWidth,
+    required double pageHeight,
+    required double imageWidth,
+    required double imageHeight,
+  }) {
+    const maxWidth = 150.0;
+    const maxHeight = 56.0;
+    const horizontalPadding = 28.0;
+    const verticalPadding = 28.0;
+    final widthScale = maxWidth / imageWidth;
+    final heightScale = maxHeight / imageHeight;
+    final scale = widthScale < heightScale ? widthScale : heightScale;
+    final targetWidth = imageWidth * scale;
+    final targetHeight = imageHeight * scale;
+
+    final top = placement.isTop
+        ? verticalPadding
+        : pageHeight - targetHeight - verticalPadding;
+    final left = switch (placement) {
+      PdfSignaturePlacement.topLeft || PdfSignaturePlacement.bottomLeft =>
+        horizontalPadding,
+      PdfSignaturePlacement.topRight || PdfSignaturePlacement.bottomRight =>
+        pageWidth - targetWidth - horizontalPadding,
+    };
+    return Rect.fromLTWH(left, top, targetWidth, targetHeight);
+  }
+
+  Rect _editTextBounds({
+    required PdfEditTextPlacement placement,
+    required double pageWidth,
+    required double pageHeight,
+    required double textWidth,
+    required double textHeight,
+  }) {
+    const horizontalPadding = 28.0;
+    const verticalPadding = 28.0;
+    final top = placement.isTop
+        ? verticalPadding
+        : pageHeight - textHeight - verticalPadding;
+    final left = switch (placement) {
+      PdfEditTextPlacement.topLeft || PdfEditTextPlacement.bottomLeft =>
+        horizontalPadding,
+      PdfEditTextPlacement.topCenter || PdfEditTextPlacement.bottomCenter =>
+        (pageWidth - textWidth) / 2,
+      PdfEditTextPlacement.topRight || PdfEditTextPlacement.bottomRight =>
+        pageWidth - textWidth - horizontalPadding,
+    };
+    return Rect.fromLTWH(left, top, textWidth + 4, textHeight + 4);
+  }
 }
 
 enum PdfPageNumberTemplate {
@@ -606,4 +845,65 @@ enum PdfPageNumberTemplate {
         return 'Page $pageNumber of $totalPages';
     }
   }
+}
+
+enum PdfSignaturePlacement {
+  bottomRight('Bottom Right', false),
+  bottomLeft('Bottom Left', false),
+  topRight('Top Right', true),
+  topLeft('Top Left', true);
+
+  const PdfSignaturePlacement(this.title, this.isTop);
+
+  final String title;
+  final bool isTop;
+}
+
+enum PdfEditTextPlacement {
+  topLeft('Top Left', PdfTextAlignment.left, true),
+  topCenter('Top Center', PdfTextAlignment.center, true),
+  topRight('Top Right', PdfTextAlignment.right, true),
+  bottomLeft('Bottom Left', PdfTextAlignment.left, false),
+  bottomCenter('Bottom Center', PdfTextAlignment.center, false),
+  bottomRight('Bottom Right', PdfTextAlignment.right, false);
+
+  const PdfEditTextPlacement(this.title, this.alignment, this.isTop);
+
+  final String title;
+  final PdfTextAlignment alignment;
+  final bool isTop;
+}
+
+class PdfPageEditBundle {
+  const PdfPageEditBundle({
+    this.strokes = const <PdfEditStroke>[],
+    this.textItems = const <PdfEditTextItem>[],
+  });
+
+  final List<PdfEditStroke> strokes;
+  final List<PdfEditTextItem> textItems;
+}
+
+class PdfEditStroke {
+  const PdfEditStroke({
+    required this.points,
+    this.strokeWidth = 2.8,
+    this.colorValue = 0xFF18181B,
+  });
+
+  final List<Offset> points;
+  final double strokeWidth;
+  final int colorValue;
+}
+
+class PdfEditTextItem {
+  const PdfEditTextItem({
+    required this.text,
+    required this.normalizedOffset,
+    this.fontSize = 18,
+  });
+
+  final String text;
+  final Offset normalizedOffset;
+  final double fontSize;
 }

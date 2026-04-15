@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import '../utils/instant_page_route.dart';
 import 'document_viewer_screen.dart';
 
 class WordToPdfScreen extends StatefulWidget {
@@ -191,7 +192,7 @@ class _WordToPdfScreenState extends State<WordToPdfScreen> {
       return;
     }
     Navigator.of(this.context).pushReplacement(
-      MaterialPageRoute<void>(
+      InstantPageRoute<void>(
         builder: (_) => DocumentViewerScreen(file: createdFile),
       ),
     );

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
@@ -324,6 +325,44 @@ class AppController extends ChangeNotifier {
         outputFileName: outputFileName,
       );
       statusMessage = 'Unlocked PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> signPdfPath(
+    String inputPath, {
+    required Uint8List signatureBytes,
+    required int pageNumber,
+    required PdfSignaturePlacement placement,
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      final output = await pdfService.signPdf(
+        inputPath,
+        signatureBytes: signatureBytes,
+        pageNumber: pageNumber,
+        placement: placement,
+        outputFileName: outputFileName,
+      );
+      statusMessage = 'Signed PDF saved to $output';
+      await refreshAll();
+      return output;
+    });
+  }
+
+  Future<String?> editPdfPath(
+    String inputPath, {
+    required Map<int, PdfPageEditBundle> editsByPage,
+    String? outputFileName,
+  }) {
+    return _runBusyTask(() async {
+      final output = await pdfService.editPdfContent(
+        inputPath,
+        editsByPage: editsByPage,
+        outputFileName: outputFileName,
+      );
+      statusMessage = 'Edited PDF saved to $output';
       await refreshAll();
       return output;
     });

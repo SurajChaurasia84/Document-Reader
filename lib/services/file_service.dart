@@ -290,7 +290,7 @@ class FileService {
     return File(path).readAsString();
   }
 
-  Future<String> saveToPureDocFolder(String sourcePath) async {
+  Future<String> saveToPdfStudioFolder(String sourcePath) async {
     await ensureStoragePermissions();
     final sourceFile = File(sourcePath);
     if (!await sourceFile.exists()) {
@@ -299,10 +299,10 @@ class FileService {
 
     Directory targetDirectory;
     if (Platform.isAndroid) {
-      targetDirectory = Directory('/storage/emulated/0/PureDoc');
+      targetDirectory = Directory('/storage/emulated/0/PDF Studio');
     } else {
       final root = await getApplicationDocumentsDirectory();
-      targetDirectory = Directory(p.join(root.path, 'PureDoc'));
+      targetDirectory = Directory(p.join(root.path, 'PDF Studio'));
     }
 
     if (!await targetDirectory.exists()) {

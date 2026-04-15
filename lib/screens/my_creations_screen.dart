@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../utils/formatters.dart';
+import '../utils/instant_page_route.dart';
 import '../utils/theme_utils.dart';
 import 'document_viewer_screen.dart';
 import 'photo_preview_screen.dart';
@@ -117,7 +118,7 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
               children: <Widget>[
                 Text(
-                  'Files you created inside PureDoc',
+                  'Files you created inside PDF Studio',
                   style: TextStyle(
                     color: context.secondaryText,
                     fontSize: 13,
@@ -209,7 +210,7 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
       return;
     }
     Navigator.of(context).push(
-      MaterialPageRoute<void>(
+      InstantPageRoute<void>(
         builder: (_) => file.isImage
             ? PhotoPreviewScreen(imagePaths: <String>[file.path])
             : DocumentViewerScreen(file: file),
@@ -242,7 +243,7 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
 
     await Share.shareXFiles(
       <XFile>[XFile(file.path)],
-      text: 'Shared from PureDoc',
+      text: 'Shared from PDF Studio',
       subject: file.name,
     );
   }
@@ -253,7 +254,7 @@ class _MyCreationsScreenState extends State<MyCreationsScreen> {
     AppFile file,
   ) async {
     try {
-      final savedPath = await controller.fileService.saveToPureDocFolder(
+      final savedPath = await controller.fileService.saveToPdfStudioFolder(
         file.path,
       );
       await controller.refreshAll();

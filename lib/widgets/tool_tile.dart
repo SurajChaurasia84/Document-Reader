@@ -43,7 +43,7 @@ class ToolTile extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
                   Icon(
-                    IconData(tool.icon, fontFamily: 'MaterialIcons'),
+                    tool.icon,
                     color: context.primaryText,
                     size: 24,
                   ),

@@ -1,4 +1,4 @@
-package com.example.doc_reader
+package com.example.pdf_studio
 
 import android.os.Build
 import android.os.Environment
@@ -9,7 +9,7 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
 class MainActivity : FlutterActivity() {
-    private val channelName = "doc_reader/storage_info"
+    private val channelName = "pdf_studio/storage_info"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)

@@ -8,6 +8,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import '../utils/instant_page_route.dart';
 import 'document_viewer_screen.dart';
 
 class MergePdfScreen extends StatefulWidget {
@@ -193,7 +194,7 @@ class _MergePdfScreenState extends State<MergePdfScreen> {
       return;
     }
     Navigator.of(this.context).pushReplacement(
-      MaterialPageRoute<void>(
+      InstantPageRoute<void>(
         builder: (_) => DocumentViewerScreen(file: mergedFile),
       ),
     );

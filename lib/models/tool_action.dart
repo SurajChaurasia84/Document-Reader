@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart';
+
 class ToolAction {
   const ToolAction({
     required this.id,
@@ -9,5 +11,5 @@ class ToolAction {
   final String id;
   final String title;
   final String description;
-  final int icon;
+  final IconData icon;
 }

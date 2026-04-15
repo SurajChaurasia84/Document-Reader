@@ -636,7 +636,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
         });
         return;
       case _ViewerAction.download:
-        final savedPath = await controller.fileService.saveToPureDocFolder(
+        final savedPath = await controller.fileService.saveToPdfStudioFolder(
           _currentFile.path,
         );
         if (!mounted) {
@@ -667,7 +667,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     await Share.shareXFiles(
       <XFile>[XFile(_currentFile.path)],
       subject: _currentFile.name,
-      text: 'Shared from PureDoc',
+      text: 'Shared from PDF Studio',
     );
   }
 

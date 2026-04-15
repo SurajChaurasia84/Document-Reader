@@ -7,6 +7,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
 import '../utils/formatters.dart';
+import '../utils/instant_page_route.dart';
 import '../utils/theme_utils.dart';
 import 'document_viewer_screen.dart';
 import 'photo_preview_screen.dart';
@@ -54,15 +55,27 @@ class MyFilesScreen extends StatefulWidget {
 }
 
 class _MyFilesScreenState extends State<MyFilesScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   MyFilesSource _source = MyFilesSource.internal;
   MyFilesFilter _filter = MyFilesFilter.all;
   MyFilesSortOption _sort = MyFilesSortOption.dateModified;
+  bool _showSearch = false;
+  bool _isGridView = false;
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
     final sourceFiles = _filesForSource(controller);
-    final visibleFiles = _sortFiles(_applyFilter(sourceFiles));
+    final visibleFiles = _sortFiles(_applySearch(_applyFilter(sourceFiles)));
 
     return Scaffold(
       backgroundColor: context.appBackground,
@@ -75,9 +88,60 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
             children: <Widget>[
               _HeaderRow(
-                onSearchTap: () => _showHint(context, 'Search will be added next.'),
-                onViewTap: () => _showHint(context, 'Grid view will be added next.'),
+                isGridView: _isGridView,
+                isSearchActive: _showSearch,
+                onSearchTap: _toggleSearch,
+                onViewTap: () {
+                  setState(() {
+                    _isGridView = !_isGridView;
+                  });
+                },
               ),
+              if (_showSearch) ...<Widget>[
+                const SizedBox(height: 14),
+                Container(
+                  decoration: BoxDecoration(
+                    color: context.searchBackground,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: context.borderColor),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    onChanged: (value) {
+                      setState(() {
+                        _query = value.trim().toLowerCase();
+                      });
+                    },
+                    style: TextStyle(color: context.primaryText),
+                    decoration: InputDecoration(
+                      hintText: 'Search files...',
+                      hintStyle: TextStyle(color: context.secondaryText),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: context.secondaryText,
+                      ),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                _searchFocusNode.unfocus();
+                                setState(() {
+                                  _query = '';
+                                });
+                              },
+                              icon: Icon(
+                                Icons.close_rounded,
+                                color: context.secondaryText,
+                              ),
+                            ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 4),
               Text(
                 'All your documents in one place',
@@ -154,37 +218,42 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
               if (visibleFiles.isEmpty)
                 const _EmptyStateCard()
               else
-                ...visibleFiles.map(
-                  (file) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _MyFileCard(
-                      file: file,
-                      onTap: () async {
-                        if (!await File(file.path).exists()) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'This file is no longer available on your device.',
+                _isGridView
+                    ? GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: visibleFiles.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                              mainAxisExtent: 150,
+                            ),
+                        itemBuilder: (context, index) {
+                          final file = visibleFiles[index];
+                          return _MyFileGridCard(
+                            file: file,
+                            onTap: () => _openFile(context, file),
+                            onFavoriteTap: () => controller.toggleFavorite(file),
+                          );
+                        },
+                      )
+                    : Column(
+                        children: visibleFiles
+                            .map(
+                              (file) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: _MyFileCard(
+                                  file: file,
+                                  onTap: () => _openFile(context, file),
+                                  onFavoriteTap: () =>
+                                      controller.toggleFavorite(file),
                                 ),
                               ),
-                            );
-                          }
-                          return;
-                        }
-                        if (!context.mounted) {
-                          return;
-                        }
-                        Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => DocumentViewerScreen(file: file),
-                          ),
-                        );
-                      },
-                      onFavoriteTap: () => controller.toggleFavorite(file),
-                    ),
-                  ),
-                ),
+                            )
+                            .toList(),
+                      ),
             ],
           ),
         ),
@@ -228,6 +297,20 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
     }
   }
 
+  List<AppFile> _applySearch(List<AppFile> files) {
+    if (_query.isEmpty) {
+      return files;
+    }
+    return files.where((file) {
+      final name = file.name.toLowerCase();
+      final extension = file.extension.toLowerCase();
+      final path = file.path.toLowerCase();
+      return name.contains(_query) ||
+          extension.contains(_query) ||
+          path.contains(_query);
+    }).toList();
+  }
+
   List<AppFile> _sortFiles(List<AppFile> files) {
     final sorted = List<AppFile>.from(files);
     switch (_sort) {
@@ -256,6 +339,45 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
+  }
+
+  void _toggleSearch() {
+    setState(() {
+      _showSearch = !_showSearch;
+      if (!_showSearch) {
+        _searchController.clear();
+        _searchFocusNode.unfocus();
+        _query = '';
+      }
+    });
+    if (_showSearch) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _searchFocusNode.requestFocus();
+        }
+      });
+    }
+  }
+
+  Future<void> _openFile(BuildContext context, AppFile file) async {
+    if (!await File(file.path).exists()) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'This file is no longer available on your device.',
+            ),
+          ),
+        );
+      }
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+    Navigator.of(
+      context,
+    ).push(InstantPageRoute<void>(builder: (_) => DocumentViewerScreen(file: file)));
   }
 
   void _showImportSheet(BuildContext context, AppController controller) {
@@ -319,7 +441,7 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
       }
 
       Navigator.of(context).push(
-        MaterialPageRoute<void>(
+        InstantPageRoute<void>(
           builder: (_) => PhotoPreviewScreen(imagePaths: imagePaths),
         ),
       );
@@ -380,10 +502,17 @@ class _ImportButton extends StatelessWidget {
 }
 
 class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({required this.onSearchTap, required this.onViewTap});
+  const _HeaderRow({
+    required this.onSearchTap,
+    required this.onViewTap,
+    required this.isGridView,
+    required this.isSearchActive,
+  });
 
   final VoidCallback onSearchTap;
   final VoidCallback onViewTap;
+  final bool isGridView;
+  final bool isSearchActive;
 
   @override
   Widget build(BuildContext context) {
@@ -404,9 +533,15 @@ class _HeaderRow extends StatelessWidget {
             ],
           ),
         ),
-        _HeaderActionButton(icon: Icons.search_rounded, onTap: onSearchTap),
+        _HeaderActionButton(
+          icon: isSearchActive ? Icons.close_rounded : Icons.search_rounded,
+          onTap: onSearchTap,
+        ),
         const SizedBox(width: 10),
-        _HeaderActionButton(icon: Icons.grid_view_rounded, onTap: onViewTap),
+        _HeaderActionButton(
+          icon: isGridView ? Icons.view_list_rounded : Icons.grid_view_rounded,
+          onTap: onViewTap,
+        ),
       ],
     );
   }
@@ -716,6 +851,100 @@ class _MyFileCard extends StatelessWidget {
   }
 }
 
+class _MyFileGridCard extends StatelessWidget {
+  const _MyFileGridCard({
+    required this.file,
+    required this.onTap,
+    required this.onFavoriteTap,
+  });
+
+  final AppFile file;
+  final VoidCallback onTap;
+  final VoidCallback onFavoriteTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: context.panelBackground,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.borderColor),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: _MyFileCard._fileColor(file.extension),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      file.extension.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: onFavoriteTap,
+                    splashRadius: 18,
+                    visualDensity: VisualDensity.compact,
+                    icon: Icon(
+                      file.isFavorite
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      color: file.isFavorite
+                          ? const Color(0xFFF3B63F)
+                          : context.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                file.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: context.primaryText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              _MyFileMetaPart(
+                futureLabel: _FilePageCountLabel.labelFor(file),
+                fallbackLabel: _FilePageCountLabel.fallbackFor(file),
+                size: file.size,
+                modifiedAt: file.modifiedAt,
+                style: TextStyle(
+                  color: context.secondaryText,
+                  fontSize: 11,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _MyFileMetaPart extends StatelessWidget {
   const _MyFileMetaPart({
     required this.futureLabel,
@@ -854,7 +1083,7 @@ class _ImportSheet extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Choose how to add files to PureDoc',
+                'Choose how to add files to PDF Studio',
                 style: TextStyle(
                   color: context.secondaryText,
                   fontSize: 13,

@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.doc_reader"
+    namespace = "com.example.pdf_studio"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.doc_reader"
+        applicationId = "com.example.pdf_studio"
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

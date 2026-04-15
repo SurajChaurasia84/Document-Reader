@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../models/app_file.dart';
 import '../services/app_controller.dart';
+import '../utils/instant_page_route.dart';
 import '../widgets/file_tile.dart';
 import '../widgets/fixed_top_header.dart';
 import 'document_viewer_screen.dart';
@@ -97,7 +98,7 @@ class _FileList extends StatelessWidget {
             file: file,
             onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute<void>(
+                InstantPageRoute<void>(
                   builder: (_) => DocumentViewerScreen(file: file),
                 ),
               );
