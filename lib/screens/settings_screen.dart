@@ -26,6 +26,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'https://play.google.com/store/apps/details?id=com.example.pdf_studio';
   static const String _shareMessage =
       'Try PDF Studio for fast offline document reading and PDF tools.\n\n$_playStoreUrl';
+  static const String _termsAssetPath = 'assets/terms_and_conditions.txt';
+  static const String _privacyAssetPath = 'assets/privacy_policy.txt';
+  static const String _aboutAssetPath = 'assets/about_us.txt';
 
   late final StorageInfoService _storageInfoService = StorageInfoService();
   late Future<StorageOverview?> _storageOverviewFuture =
@@ -37,6 +40,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _storageOverviewFuture = _storageInfoService.getStorageOverview();
     });
     await _storageOverviewFuture;
+  }
+
+  Future<String> _loadAssetText(String path, String fallbackText) async {
+    try {
+      return await rootBundle.loadString(path);
+    } catch (_) {
+      return fallbackText;
+    }
+  }
+
+  Future<void> _openTermsPage(BuildContext context) async {
+    final content = await _loadAssetText(_termsAssetPath, _termsText);
+    if (!context.mounted) {
+      return;
+    }
+    _openInfoPage(
+      context,
+      title: 'Terms & Conditions',
+      content: content,
+    );
+  }
+
+  Future<void> _openPrivacyPage(BuildContext context) async {
+    final content = await _loadAssetText(_privacyAssetPath, _privacyText);
+    if (!context.mounted) {
+      return;
+    }
+    _openInfoPage(
+      context,
+      title: 'Privacy Policy',
+      content: content,
+    );
+  }
+
+  Future<void> _openAboutPage(BuildContext context) async {
+    final content = await _loadAssetText(_aboutAssetPath, _aboutText);
+    if (!context.mounted) {
+      return;
+    }
+    _openInfoPage(
+      context,
+      title: 'About us',
+      content: content,
+    );
   }
 
   @override
@@ -203,29 +250,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _MoreMenuTile(
                       icon: Icons.gavel_rounded,
                       title: 'Terms & Conditions',
-                      onTap: () => _openInfoPage(
-                        context,
-                        title: 'Terms & Conditions',
-                        content: _termsText,
-                      ),
+                      onTap: () => _openTermsPage(context),
                     ),
                     _MoreMenuTile(
                       icon: Icons.privacy_tip_outlined,
                       title: 'Privacy Policy',
-                      onTap: () => _openInfoPage(
-                        context,
-                        title: 'Privacy Policy',
-                        content: _privacyText,
-                      ),
+                      onTap: () => _openPrivacyPage(context),
                     ),
                     _MoreMenuTile(
                       icon: Icons.info_outline_rounded,
                       title: 'About us',
-                      onTap: () => _openInfoPage(
-                        context,
-                        title: 'About us',
-                        content: _aboutText,
-                      ),
+                      onTap: () => _openAboutPage(context),
                     ),
                     _MoreMenuTile(
                       icon: Icons.help_outline_rounded,
