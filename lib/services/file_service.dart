@@ -65,7 +65,7 @@ class FileService {
 
   Future<AppFile?> pickSingleDocument() async {
     await ensureStoragePermissions();
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: supportedExtensions,
     );
@@ -77,7 +77,7 @@ class FileService {
 
   Future<List<String>> pickPdfFiles({bool allowMultiple = true}) async {
     await ensureStoragePermissions();
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: allowMultiple,
       type: FileType.custom,
       allowedExtensions: const <String>['pdf'],
@@ -90,7 +90,7 @@ class FileService {
 
   Future<List<String>> pickWordFiles({bool allowMultiple = true}) async {
     await ensureStoragePermissions();
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: allowMultiple,
       type: FileType.custom,
       allowedExtensions: const <String>['doc', 'docx'],
@@ -103,7 +103,7 @@ class FileService {
 
   Future<List<String>> pickImageFiles({bool allowMultiple = true}) async {
     await ensureStoragePermissions();
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: allowMultiple,
       type: FileType.image,
     );
@@ -131,7 +131,7 @@ class FileService {
               imageQuality: 100,
               requestFullMetadata: false,
             );
-            photos = <XFile>[?single];
+            photos = <XFile>[if (single != null) single];
           }
         } else {
           final single = await _imagePicker.pickImage(
@@ -139,7 +139,7 @@ class FileService {
             imageQuality: 100,
             requestFullMetadata: false,
           );
-          photos = <XFile>[?single];
+          photos = <XFile>[if (single != null) single];
         }
 
         return photos.map((file) => file.path).toList();
