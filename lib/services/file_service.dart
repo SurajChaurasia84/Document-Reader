@@ -158,24 +158,49 @@ class FileService {
   }) async {
     await ensureStoragePermissions();
     if (Platform.isAndroid) {
-      return _listSupportedFiles(
+      final roots = <Directory>[
         Directory('/storage/emulated/0'),
-        favorites: favorites,
-        excludedPaths: <String>{
-          '/storage/emulated/0/Download',
-          '/storage/emulated/0/Downloads',
-          '/storage/emulated/0/Android',
-          '/storage/emulated/0/DCIM',
-          '/storage/emulated/0/Pictures',
-          '/storage/emulated/0/Movies/.thumbnails',
-          '/storage/emulated/0/.Trash',
-          '/storage/emulated/0/Trash',
-          '/storage/emulated/0/Recycle Bin',
-          '/storage/emulated/0/.recycle',
-          '/storage/emulated/0/Deleted',
-          '/storage/emulated/0/.Deleted',
-        },
+        Directory('/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents'),
+        Directory('/storage/emulated/0/WhatsApp/Media/WhatsApp Documents'),
+        Directory('/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Documents'),
+        Directory('/storage/emulated/0/WhatsApp Business/Media/WhatsApp Business Documents'),
+      ];
+
+      final results = await Future.wait(
+        roots.map(
+          (dir) => _listSupportedFiles(
+            dir,
+            favorites: favorites,
+            excludedPaths: <String>{
+              '/storage/emulated/0/Download',
+              '/storage/emulated/0/Downloads',
+              '/storage/emulated/0/Android',
+              '/storage/emulated/0/DCIM',
+              '/storage/emulated/0/Pictures',
+              '/storage/emulated/0/Movies/.thumbnails',
+              '/storage/emulated/0/.Trash',
+              '/storage/emulated/0/Trash',
+              '/storage/emulated/0/Recycle Bin',
+              '/storage/emulated/0/.recycle',
+              '/storage/emulated/0/Deleted',
+              '/storage/emulated/0/.Deleted',
+            },
+          ),
+        ),
       );
+
+      final combined = results.expand((list) => list).toList();
+      final seenPaths = <String>{};
+      final uniqueFiles = <AppFile>[];
+
+      for (final file in combined) {
+        if (seenPaths.add(file.path)) {
+          uniqueFiles.add(file);
+        }
+      }
+
+      uniqueFiles.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+      return uniqueFiles;
     }
 
     final directory = await getApplicationDocumentsDirectory();
