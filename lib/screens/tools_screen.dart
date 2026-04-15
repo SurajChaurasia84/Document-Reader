@@ -372,17 +372,21 @@ class _ToolListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
     return Material(
-      color: context.toolbarBlueEnd,
-      borderRadius: BorderRadius.circular(16),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
+            color: tool.color.withValues(alpha: isDark ? 0.08 : 0.05),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.borderColor),
+            border: Border.all(
+              color: tool.color.withValues(alpha: isDark ? 0.25 : 0.15),
+              width: 1.2,
+            ),
           ),
           child: Row(
             children: <Widget>[
@@ -390,24 +394,16 @@ class _ToolListTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: context.isDarkMode
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : const Color(0xFFE9EEF8),
-                  borderRadius: BorderRadius.circular(12),
+                  color: tool.color.withValues(alpha: isDark ? 0.18 : 0.12),
+                  shape: BoxShape.circle,
                 ),
-                child: Stack(
-                  children: <Widget>[
-                    Center(
-                      child: Icon(
-                        tool.icon,
-                        color: context.primaryText,
-                        size: 22,
-                      ),
-                    ),
-                  ],
+                child: Icon(
+                  tool.icon,
+                  color: isDark ? tool.color.withValues(alpha: 0.9) : tool.color,
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,8 +412,9 @@ class _ToolListTile extends StatelessWidget {
                       tool.title,
                       style: TextStyle(
                         color: context.primaryText,
-                        fontSize: 14,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -429,7 +426,7 @@ class _ToolListTile extends StatelessWidget {
                         color: context.tertiaryText,
                         fontSize: 12,
                         height: 1.35,
-                          ),
+                      ),
                     ),
                   ],
                 ),
@@ -437,7 +434,7 @@ class _ToolListTile extends StatelessWidget {
               const SizedBox(width: 8),
               Icon(
                 Icons.chevron_right_rounded,
-                color: context.secondaryText,
+                color: tool.color.withValues(alpha: 0.5),
               ),
             ],
           ),
