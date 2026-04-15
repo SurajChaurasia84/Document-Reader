@@ -155,11 +155,13 @@ class FileService {
 
   Future<List<AppFile>> listInternalFiles({
     Set<String> favorites = const <String>{},
+    String? rootDir,
   }) async {
     await ensureStoragePermissions();
     if (Platform.isAndroid) {
+      final baseRoot = rootDir ?? '/storage/emulated/0';
       final roots = <Directory>[
-        Directory('/storage/emulated/0'),
+        Directory(baseRoot),
         Directory('/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents'),
         Directory('/storage/emulated/0/WhatsApp/Media/WhatsApp Documents'),
         Directory('/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Documents'),

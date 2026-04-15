@@ -155,13 +155,6 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
               _SourceTabs(
                 current: _source,
                 onChanged: (value) {
-                  if (value == MyFilesSource.sdCard) {
-                    _showHint(
-                      context,
-                      'SD Card browsing is not available in this MVP.',
-                    );
-                    return;
-                  }
                   setState(() {
                     _source = value;
                   });
@@ -273,7 +266,7 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
       case MyFilesSource.downloads:
         return controller.downloadFiles;
       case MyFilesSource.sdCard:
-        return const <AppFile>[];
+        return controller.sdCardFiles;
     }
   }
 

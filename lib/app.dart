@@ -12,6 +12,7 @@ import 'services/office_service.dart';
 import 'services/ocr_service.dart';
 import 'services/pdf_service.dart';
 import 'services/scanner_service.dart';
+import 'services/storage_info_service.dart';
 import 'services/storage_service.dart';
 import 'utils/app_theme.dart';
 
@@ -30,6 +31,7 @@ class DocReaderApp extends StatelessWidget {
         ocrService: OcrService(),
         aiService: AiService(),
         scannerService: ScannerService(),
+        storageInfoService: StorageInfoService(),
       )..initialize(),
       child: Consumer<AppController>(
         builder: (context, controller, _) {

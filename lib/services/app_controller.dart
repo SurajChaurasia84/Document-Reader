@@ -14,6 +14,7 @@ import 'office_service.dart';
 import 'ocr_service.dart';
 import 'pdf_service.dart';
 import 'scanner_service.dart';
+import 'storage_info_service.dart';
 import 'storage_service.dart';
 
 class AppController extends ChangeNotifier {
@@ -26,6 +27,7 @@ class AppController extends ChangeNotifier {
     required this.ocrService,
     required this.aiService,
     required this.scannerService,
+    required this.storageInfoService,
   });
 
   final StorageService storageService;
@@ -36,6 +38,7 @@ class AppController extends ChangeNotifier {
   final OcrService ocrService;
   final AiService aiService;
   final ScannerService scannerService;
+  final StorageInfoService storageInfoService;
 
   bool isInitialized = false;
   bool isLoading = false;
@@ -47,6 +50,8 @@ class AppController extends ChangeNotifier {
   List<AppFile> favoriteFiles = <AppFile>[];
   List<AppFile> internalFiles = <AppFile>[];
   List<AppFile> downloadFiles = <AppFile>[];
+  List<AppFile> sdCardFiles = <AppFile>[];
+  bool isSdCardAvailable = false;
   AppFile? lastOpenedFile;
 
   Future<void> initialize() async {
@@ -76,8 +81,21 @@ class AppController extends ChangeNotifier {
     internalFiles = await fileService.listInternalFiles(favorites: favorites);
     downloadFiles = await fileService.listDownloads(favorites: favorites);
 
+    final overview = await storageInfoService.getStorageOverview();
+    final sdCardPath = overview?.sdCardStorage?.path;
+    isSdCardAvailable = overview?.sdCardStorage?.isAvailable ?? false;
+
+    if (isSdCardAvailable && sdCardPath != null && sdCardPath.isNotEmpty) {
+      sdCardFiles = await fileService.listInternalFiles(
+        favorites: favorites,
+        rootDir: sdCardPath,
+      );
+    } else {
+      sdCardFiles = <AppFile>[];
+    }
+
     favoriteFiles =
-        <AppFile>[...recentFiles, ...internalFiles, ...downloadFiles]
+        <AppFile>[...recentFiles, ...internalFiles, ...downloadFiles, ...sdCardFiles]
             .where((file) => favorites.contains(file.path))
             .fold<Map<String, AppFile>>(<String, AppFile>{}, (map, file) {
               map[file.path] = file.copyWith(isFavorite: true);
@@ -93,6 +111,7 @@ class AppController extends ChangeNotifier {
       ...favoriteFiles,
       ...internalFiles,
       ...downloadFiles,
+      ...sdCardFiles,
     ];
     lastOpenedFile = allFiles.firstWhereOrNull((file) => file.path == lastPath);
     if (lastOpenedFile == null &&
