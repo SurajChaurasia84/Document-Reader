@@ -41,6 +41,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   late final Future<SpreadsheetPreviewData?> _spreadsheetPreviewFuture;
   late final Future<PresentationPreviewData?> _presentationPreviewFuture;
   bool _isPreparingPdf = false;
+
+  bool get _isPaperLikeFile =>
+      widget.file.isText ||
+      <String>['doc', 'docx'].contains(widget.file.extension.toLowerCase());
   bool _pdfNeedsPassword = false;
   bool _isPasswordPromptOpen = false;
   String? _pdfPassword;
@@ -83,8 +87,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final usePdfChrome = _currentFile.isPdf && _fileExists;
+    final isPaperLike = _isPaperLikeFile;
     final pdfBackground = context.isDarkMode ? Colors.black : Colors.white;
-    final pdfForeground = context.isDarkMode ? Colors.white : const Color(0xFF111827);
+    final pdfForeground =
+        context.isDarkMode ? Colors.white : const Color(0xFF111827);
 
     return Scaffold(
       backgroundColor: usePdfChrome ? pdfBackground : null,
@@ -109,8 +115,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 textColor: usePdfChrome ? Colors.white : context.primaryText,
                 surfaceColor: usePdfChrome
                     ? (context.isDarkMode
-                          ? Colors.white.withValues(alpha: 0.08)
-                          : const Color(0xFFF3F4F6))
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : const Color(0xFFF3F4F6))
                     : context.searchBackground,
                 onChanged: _onFindQueryChanged,
                 onClear: _clearFindQuery,
@@ -224,6 +230,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   }
 
   Widget _buildContent(BuildContext context) {
+    final usePdfChrome = _currentFile.isPdf && _fileExists;
+    final isPaperLike = _isPaperLikeFile;
     final pdfBackground = context.isDarkMode ? Colors.black : Colors.white;
     final pdfForeground = context.isDarkMode
         ? Colors.white
@@ -362,12 +370,16 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          return Padding(
+          return Container(
+            color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: _HighlightedDocumentText(
-              text: snapshot.data ?? '',
-              query: _searchQuery,
-              currentMatchIndex: _currentMatchIndex,
+            child: SizedBox.expand(
+              child: _HighlightedDocumentText(
+                text: snapshot.data ?? '',
+                query: _searchQuery,
+                currentMatchIndex: _currentMatchIndex,
+                forceDarkText: true,
+              ),
             ),
           );
         },
@@ -438,12 +450,16 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             );
           }
 
-          return Padding(
+          return Container(
+            color: Colors.white,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: _HighlightedDocumentText(
-              text: snapshot.data ?? '',
-              query: _searchQuery,
-              currentMatchIndex: _currentMatchIndex,
+            child: SizedBox.expand(
+              child: _HighlightedDocumentText(
+                text: snapshot.data ?? '',
+                query: _searchQuery,
+                currentMatchIndex: _currentMatchIndex,
+                forceDarkText: true,
+              ),
             ),
           );
         },
@@ -1148,19 +1164,22 @@ class _HighlightedDocumentText extends StatelessWidget {
     required this.text,
     required this.query,
     required this.currentMatchIndex,
+    required this.forceDarkText,
   });
 
   final String text;
   final String query;
   final int currentMatchIndex;
+  final bool forceDarkText;
 
   @override
   Widget build(BuildContext context) {
+    final textColor = forceDarkText ? const Color(0xFF111827) : context.primaryText;
     if (query.trim().isEmpty) {
       return SelectableText(
         text,
         style: TextStyle(
-          color: context.primaryText,
+          color: textColor,
           fontSize: 15,
           height: 1.6,
         ),
@@ -1183,7 +1202,7 @@ class _HighlightedDocumentText extends StatelessWidget {
           TextSpan(
             text: text.substring(start, index),
             style: TextStyle(
-              color: context.primaryText,
+              color: textColor,
               fontSize: 15,
               height: 1.6,
             ),
@@ -1216,7 +1235,7 @@ class _HighlightedDocumentText extends StatelessWidget {
         TextSpan(
           text: text.substring(start),
           style: TextStyle(
-            color: context.primaryText,
+            color: textColor,
             fontSize: 15,
             height: 1.6,
           ),
