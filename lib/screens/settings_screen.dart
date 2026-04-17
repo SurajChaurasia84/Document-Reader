@@ -26,8 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'https://play.google.com/store/apps/details?id=com.example.pdf_studio';
   static const String _shareMessage =
       'Try PDF Studio for fast offline document reading and PDF tools.\n\n$_playStoreUrl';
-  static const String _termsAssetPath = 'assets/terms_and_conditions.txt';
-  static const String _privacyAssetPath = 'assets/privacy_policy.txt';
+  static const String _privacyUrl = 'https://www.example.com/privacy-policy';
   static const String _aboutAssetPath = 'assets/about_us.txt';
 
   late final StorageInfoService _storageInfoService = StorageInfoService();
@@ -50,39 +49,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Future<void> _openTermsPage(BuildContext context) async {
-    final content = await _loadAssetText(_termsAssetPath, _termsText);
-    if (!context.mounted) {
-      return;
-    }
-    _openInfoPage(
-      context,
-      title: 'Terms & Conditions',
-      content: content,
-    );
-  }
-
   Future<void> _openPrivacyPage(BuildContext context) async {
-    final content = await _loadAssetText(_privacyAssetPath, _privacyText);
-    if (!context.mounted) {
-      return;
+    final uri = Uri.parse(_privacyUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open privacy policy link.')),
+        );
+      }
     }
-    _openInfoPage(
-      context,
-      title: 'Privacy Policy',
-      content: content,
-    );
   }
 
   Future<void> _openAboutPage(BuildContext context) async {
-    final content = await _loadAssetText(_aboutAssetPath, _aboutText);
-    if (!context.mounted) {
-      return;
-    }
     _openInfoPage(
       context,
       title: 'About us',
-      content: content,
+      content: _aboutText,
     );
   }
 
@@ -248,11 +232,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 12),
                     _MoreMenuTile(
-                      icon: Icons.gavel_rounded,
-                      title: 'Terms & Conditions',
-                      onTap: () => _openTermsPage(context),
-                    ),
-                    _MoreMenuTile(
                       icon: Icons.privacy_tip_outlined,
                       title: 'Privacy Policy',
                       onTap: () => _openPrivacyPage(context),
@@ -277,39 +256,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
               const SizedBox(height: 18),
-              FutureBuilder<PackageInfo>(
-                future: _packageInfoFuture,
-                builder: (context, snapshot) {
-                  final version = snapshot.data == null
-                      ? '--'
-                      : '${snapshot.data!.version} (${snapshot.data!.buildNumber})';
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      children: <Widget>[
-                        Text(
-                          'PDF Studio',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: context.primaryText,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Version $version',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: context.secondaryText,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+              const SizedBox(height: 20),
+              GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      'App Info',
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                  );
-                },
+                    const SizedBox(height: 12),
+                    FutureBuilder<PackageInfo>(
+                      future: _packageInfoFuture,
+                      builder: (context, snapshot) {
+                        final version = snapshot.data?.version ?? '--';
+                        final buildNumber = snapshot.data?.buildNumber ?? '';
+                        final fullVersion = buildNumber.isNotEmpty 
+                            ? '$version ($buildNumber)' 
+                            : version;
+                        
+                        return Column(
+                          children: [
+                            _AppInfoTile(
+                              icon: Icons.info_outline_rounded,
+                              label: 'App Name',
+                              value: snapshot.data?.appName ?? 'PDF Studio',
+                            ),
+                            _AppInfoTile(
+                              icon: Icons.verified_outlined,
+                              label: 'Version',
+                              value: fullVersion,
+                              showDivider: false,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -333,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _contactSupport(BuildContext context) async {
     final uri = Uri(
       scheme: 'mailto',
-      path: 'support@puredoc.app',
+      path: 'pdfstudio9@gmail.com',
       queryParameters: <String, String>{
         'subject': 'PDF Studio Support',
       },
@@ -349,7 +334,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('No email app found. Contact: support@puredoc.app'),
+        content: Text('No email app found. Contact: pdfstudio9@gmail.com'),
       ),
     );
   }
@@ -597,6 +582,60 @@ class _MoreMenuTile extends StatelessWidget {
   }
 }
 
+class _AppInfoTile extends StatelessWidget {
+  const _AppInfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.showDivider = true,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final bool showDivider;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: <Widget>[
+              Icon(icon, color: context.iconMuted, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: context.secondaryText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Text(
+                value,
+                style: TextStyle(
+                  color: context.primaryText,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            color: context.borderColor,
+          ),
+      ],
+    );
+  }
+}
+
 
 class _InfoPage extends StatelessWidget {
   const _InfoPage({required this.title, required this.content});
@@ -623,11 +662,9 @@ class _InfoPage extends StatelessWidget {
   }
 }
 
-const String _termsText =
-    'By using PDF Studio, you agree to use the app responsibly and only with files you have permission to access. PDF Studio is provided as-is, and the app is not responsible for any misuse of documents or device resources. Some features may vary by device and may require permissions to work correctly. We may update or improve the app over time to keep it stable, secure, and useful.';
-
 const String _privacyText =
     'PDF Studio is designed to work offline-first. Your files stay on your device unless you explicitly share or export them. We do not require account signup for core usage, and the app avoids unnecessary data collection.';
 
 const String _aboutText =
-    'PDF Studio is built to make document reading and lightweight PDF work fast, clean, and offline-friendly. The goal is to keep your file workflow simple without making you wait through cluttered screens.';
+    'PDF Studio is a high-performance, offline-first document toolkit designed for speed and privacy. We believe that your documents should stay on your device, which is why all our tools—from scanning to PDF conversion—work completely locally without any cloud dependency.\n\nOur mission is to provide a clutter-free, professional experience for managing your digital paperwork without the weight of unnecessary features or data tracking.';
+
