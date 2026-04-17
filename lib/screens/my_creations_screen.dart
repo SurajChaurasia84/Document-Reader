@@ -10,6 +10,8 @@ import '../services/app_controller.dart';
 import '../utils/formatters.dart';
 import '../utils/instant_page_route.dart';
 import '../utils/theme_utils.dart';
+import '../utils/file_action_helper.dart';
+import '../widgets/file_action_menu.dart';
 import 'document_viewer_screen.dart';
 import 'photo_preview_screen.dart';
 
@@ -534,60 +536,11 @@ class _CreationFileCard extends StatelessWidget {
                   ],
                 ),
               ),
-              PopupMenuButton<_CreationAction>(
-                tooltip: 'More actions',
-                color: context.panelBackground,
-                surfaceTintColor: Colors.transparent,
-                icon: Icon(
-                  Icons.more_vert_rounded,
-                  color: context.secondaryText,
-                ),
-                onSelected: (value) {
-                  switch (value) {
-                    case _CreationAction.favorite:
-                      onFavoriteToggle();
-                    case _CreationAction.share:
-                      onShare();
-                    case _CreationAction.delete:
-                      onDelete();
-                    case _CreationAction.save:
-                      onSave();
-                  }
-                },
-                itemBuilder: (context) {
-                  return <PopupMenuEntry<_CreationAction>>[
-                    PopupMenuItem<_CreationAction>(
-                      value: _CreationAction.favorite,
-                      child: Text(
-                        file.isFavorite
-                            ? 'Remove from favourites'
-                            : 'Add to favourites',
-                        style: TextStyle(color: context.primaryText),
-                      ),
-                    ),
-                    PopupMenuItem<_CreationAction>(
-                      value: _CreationAction.share,
-                      child: Text(
-                        'Share',
-                        style: TextStyle(color: context.primaryText),
-                      ),
-                    ),
-                    PopupMenuItem<_CreationAction>(
-                      value: _CreationAction.save,
-                      child: Text(
-                        'Save',
-                        style: TextStyle(color: context.primaryText),
-                      ),
-                    ),
-                    PopupMenuItem<_CreationAction>(
-                      value: _CreationAction.delete,
-                      child: Text(
-                        'Delete',
-                        style: TextStyle(color: context.primaryText),
-                      ),
-                    ),
-                  ];
-                },
+              StandardFileActionMenu(
+                file: file,
+                onOpen: onTap,
+                onSave: onSave,
+                onChanged: onFavoriteToggle,
               ),
             ],
           ),
@@ -597,7 +550,7 @@ class _CreationFileCard extends StatelessWidget {
   }
 }
 
-enum _CreationAction { favorite, share, save, delete }
+
 
 class _EmptyCreationsCard extends StatelessWidget {
   const _EmptyCreationsCard();
