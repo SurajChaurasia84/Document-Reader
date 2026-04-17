@@ -25,13 +25,14 @@ class AppFile {
   bool get isImage =>
       ['jpg', 'jpeg', 'png', 'webp'].contains(extension.toLowerCase());
   bool get isOffice =>
-      ['docx', 'xlsx', 'pptx'].contains(extension.toLowerCase());
+      ['doc', 'docx', 'xlsx', 'pptx'].contains(extension.toLowerCase());
   String get displayType => extension.toUpperCase();
 
   String? get assetIcon {
     switch (extension.toLowerCase()) {
       case 'pdf':
         return 'assets/pdf.png';
+      case 'doc':
       case 'docx':
         return 'assets/doc.png';
       case 'xlsx':
