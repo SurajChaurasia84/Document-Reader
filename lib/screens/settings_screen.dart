@@ -51,12 +51,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _openPrivacyPage(BuildContext context) async {
     final uri = Uri.parse(_privacyUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback: try launching anyway as a last resort
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open privacy policy link.')),
+          SnackBar(content: Text('Could not open privacy policy: $e')),
         );
       }
     }
@@ -279,12 +284,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         return Column(
                           children: [
                             _AppInfoTile(
-                              icon: Icons.info_outline_rounded,
                               label: 'App Name',
                               value: snapshot.data?.appName ?? 'PDF Studio',
                             ),
                             _AppInfoTile(
-                              icon: Icons.verified_outlined,
                               label: 'Version',
                               value: fullVersion,
                               showDivider: false,
@@ -324,19 +327,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
       },
     );
 
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-      return;
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      } else {
+        // Fallback for some email clients
+        await launchUrl(uri);
+        return;
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No email app found. Contact: pdfstudio9@gmail.com ($e)'),
+        ),
+      );
     }
-
-    if (!context.mounted) {
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('No email app found. Contact: pdfstudio9@gmail.com'),
-      ),
-    );
   }
 
   Future<void> _showShareOptions(BuildContext context) async {
@@ -584,13 +591,11 @@ class _MoreMenuTile extends StatelessWidget {
 
 class _AppInfoTile extends StatelessWidget {
   const _AppInfoTile({
-    required this.icon,
     required this.label,
     required this.value,
     this.showDivider = true,
   });
 
-  final IconData icon;
   final String label;
   final String value;
   final bool showDivider;
@@ -603,13 +608,11 @@ class _AppInfoTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             children: <Widget>[
-              Icon(icon, color: context.iconMuted, size: 20),
-              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: context.secondaryText,
+                    color: context.primaryText,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -618,9 +621,9 @@ class _AppInfoTile extends StatelessWidget {
               Text(
                 value,
                 style: TextStyle(
-                  color: context.primaryText,
+                  color: context.secondaryText,
                   fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
