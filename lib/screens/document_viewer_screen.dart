@@ -553,7 +553,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     }
 
     if (_isPreviewableOfficeFile(_currentFile)) {
-      if (_currentFile.extension.toLowerCase() == 'xlsx' && _searchQuery.isEmpty) {
+      if (_currentFile.extension.toLowerCase() == 'xlsx') {
         return FutureBuilder<SpreadsheetPreviewData?>(
           future: _spreadsheetPreviewFuture,
           builder: (context, snapshot) {
@@ -569,7 +569,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 message: 'No readable data found in this Excel file.',
               );
             }
-            return _SpreadsheetPreview(data: preview);
+            return _SpreadsheetPreview(
+              data: preview,
+              searchQuery: _searchQuery,
+            );
           },
         );
       }
@@ -1378,9 +1381,11 @@ class _OfficePreviewError extends StatelessWidget {
 class _SpreadsheetPreview extends StatelessWidget {
   const _SpreadsheetPreview({
     required this.data,
+    this.searchQuery = '',
   });
 
   final SpreadsheetPreviewData data;
+  final String searchQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -1395,7 +1400,12 @@ class _SpreadsheetPreview extends StatelessWidget {
           Expanded(
             child: TabBarView(
               physics: const NeverScrollableScrollPhysics(),
-              children: data.sheets.map((sheet) => _SpreadsheetGrid(sheet: sheet)).toList(),
+              children: data.sheets
+                  .map((sheet) => _SpreadsheetGrid(
+                        sheet: sheet,
+                        searchQuery: searchQuery,
+                      ))
+                  .toList(),
             ),
           ),
           // SHEET TABS AT BOTTOM
@@ -1424,8 +1434,13 @@ class _SpreadsheetPreview extends StatelessWidget {
 }
 
 class _SpreadsheetGrid extends StatelessWidget {
-  const _SpreadsheetGrid({required this.sheet});
+  const _SpreadsheetGrid({
+    required this.sheet,
+    this.searchQuery = '',
+  });
+
   final SpreadsheetSheetData sheet;
+  final String searchQuery;
 
   String _getColumnLabel(int index) {
     String label = '';
@@ -1436,6 +1451,62 @@ class _SpreadsheetGrid extends StatelessWidget {
       n = (n - m) ~/ 26;
     }
     return label;
+  }
+
+  Widget _buildCellValue(String text, BuildContext context) {
+    if (searchQuery.trim().isEmpty || !text.toLowerCase().contains(searchQuery.toLowerCase())) {
+      return Text(
+        text,
+        style: const TextStyle(
+          color: Color(0xFF111827),
+          fontSize: 13,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    final spans = <InlineSpan>[];
+    final lowerText = text.toLowerCase();
+    final lowerQuery = searchQuery.toLowerCase();
+    var start = 0;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index == -1) {
+        break;
+      }
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index)));
+      }
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + searchQuery.length),
+          style: const TextStyle(
+            backgroundColor: Color(0xFFFACC15), // Yellow highlight
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+      start = index + searchQuery.length;
+    }
+
+    if (start < text.length) {
+      spans.add(TextSpan(text: text.substring(start)));
+    }
+
+    return Text.rich(
+      TextSpan(
+        style: const TextStyle(
+          color: Color(0xFF111827),
+          fontSize: 13,
+        ),
+        children: spans,
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   @override
@@ -1512,15 +1583,7 @@ class _SpreadsheetGrid extends StatelessWidget {
                     Container(
                       padding: cellPadding,
                       constraints: const BoxConstraints(minWidth: 80),
-                      child: Text(
-                        sheet.rows[r][c],
-                        style: const TextStyle(
-                          color: Color(0xFF111827),
-                          fontSize: 13,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: _buildCellValue(sheet.rows[r][c], context),
                     ),
                 ],
               ),
