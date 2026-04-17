@@ -93,7 +93,7 @@ class StandardFileActionMenu extends StatelessWidget {
         _buildItem(context, FileAction.share, Icons.share_rounded, 'Share'),
         _buildItem(context, FileAction.info, Icons.info_outline_rounded, 'Info'),
         if (onSave != null)
-           _buildItem(context, FileAction.save, Icons.save_alt_rounded, 'Save to Studio'),
+           _buildItem(context, FileAction.save, Icons.save_alt_rounded, 'Save to Files'),
         _buildSeparator(),
         _buildItem(context, FileAction.delete, Icons.delete_outline_rounded, 'Delete', 
             iconColor: Colors.redAccent, textColor: Colors.redAccent),
