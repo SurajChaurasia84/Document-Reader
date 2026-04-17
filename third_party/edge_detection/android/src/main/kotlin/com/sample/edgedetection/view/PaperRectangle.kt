@@ -149,8 +149,13 @@ class PaperRectangle : View {
                 calculatePoint2Move(event.x, event.y)
             }
             MotionEvent.ACTION_MOVE -> {
-                point2Move.x = (event.x - latestDownX) + point2Move.x
-                point2Move.y = (event.y - latestDownY) + point2Move.y
+                val dx = (event.x - latestDownX).toDouble()
+                val dy = (event.y - latestDownY).toDouble()
+                
+                // Clamping points to screen boundaries
+                point2Move.x = (point2Move.x + dx).coerceIn(0.0, measuredWidth.toDouble())
+                point2Move.y = (point2Move.y + dy).coerceIn(0.0, measuredHeight.toDouble())
+                
                 movePoints()
                 latestDownY = event.y
                 latestDownX = event.x
@@ -161,8 +166,12 @@ class PaperRectangle : View {
 
     private fun calculatePoint2Move(downX: Float, downY: Float) {
         val points = listOf(tl, tr, br, bl)
-        point2Move = points.minByOrNull { abs((it.x - downX).times(it.y - downY)) }
-            ?: tl
+        // Find nearest point using Euclidean distance squared (dx^2 + dy^2)
+        point2Move = points.minByOrNull { 
+            val dx = it.x - downX
+            val dy = it.y - downY
+            dx * dx + dy * dy
+        } ?: tl
     }
 
     private fun movePoints() {

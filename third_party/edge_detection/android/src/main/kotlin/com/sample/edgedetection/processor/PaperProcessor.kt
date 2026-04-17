@@ -140,10 +140,53 @@ private fun getCorners(contours: List<MatOfPoint>, size: Size): Corners? {
 
     return null
 }
+import kotlin.math.atan2
+
 private fun sortPoints(points: List<Point>): List<Point> {
-    val p0 = points.minByOrNull { point -> point.x + point.y } ?: Point()
-    val p1 = points.minByOrNull { point: Point -> point.y - point.x } ?: Point()
-    val p2 = points.maxByOrNull { point: Point -> point.x + point.y } ?: Point()
-    val p3 = points.maxByOrNull { point: Point -> point.y - point.x } ?: Point()
-    return listOf(p0, p1, p2, p3)
+    if (points.size != 4) return points
+    
+    // Calculate centroid
+    val centerX = points.map { it.x }.average()
+    val centerY = points.map { it.y }.average()
+    
+    // Sort points by angle from centroid (clockwise starting from top-left)
+    val sorted = points.sortedBy { atan2(it.y - centerY, it.x - centerX) }
+    
+    // Depending on coordinate system, atan2 might result in different starting positions.
+    // For Top-Left, Top-Right, Bottom-Right, Bottom-Left:
+    // With Y down, Top-Left is usually the one with smallest x+y.
+    
+    val p0 = sorted.minByOrNull { it.x + it.y } ?: sorted[0]
+    val others = sorted.filter { it != p0 }
+    
+    // Now find the other 3 relative to p0 and center
+    // This part is redundant if we just trust the angle sort, 
+    // but we need them in: TL, TR, BR, BL order specifically.
+    
+    val p1 = sorted.minByOrNull { it.y - it.x } ?: sorted[1]
+    val p2 = sorted.maxByOrNull { it.x + it.y } ?: sorted[2]
+    val p3 = sorted.maxByOrNull { it.y - it.x } ?: sorted[3]
+    
+    // To ensure no duplicates, we can also use a more geometric approach:
+    val result = mutableListOf<Point>()
+    val remaining = points.toMutableList()
+    
+    val tl = remaining.minByOrNull { it.x + it.y }!!
+    result.add(tl)
+    remaining.remove(tl)
+    
+    val br = remaining.maxByOrNull { it.x + it.y }!!
+    // Save BR for later index [2]
+    remaining.remove(br)
+    
+    val tr = remaining.minByOrNull { it.y - it.x }!!
+    result.add(tr)
+    remaining.remove(tr)
+    
+    result.add(br)
+    
+    val bl = remaining[0]
+    result.add(bl)
+    
+    return result
 }
