@@ -153,9 +153,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
+        if (controller.isScanning)
+          const LinearProgressIndicator(
+            minHeight: 1.5,
+            backgroundColor: Colors.transparent,
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2D87F3)),
+          ),
         Expanded(
           child: RefreshIndicator(
-            onRefresh: controller.refreshAll,
+            onRefresh: () => controller.refreshAll(forceFullScan: true),
             color: context.selectedAccent,
             backgroundColor: context.panelBackground,
             child: ListView(

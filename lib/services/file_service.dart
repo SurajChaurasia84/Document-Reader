@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -153,164 +156,41 @@ class FileService {
     return pickImageFiles(allowMultiple: allowMultiple);
   }
 
-  Future<List<AppFile>> listInternalFiles({
+  static const _channel = MethodChannel('pdf_studio/storage_info');
+
+  Future<List<AppFile>> fetchMediaStoreDocuments({
     Set<String> favorites = const <String>{},
-    String? rootDir,
   }) async {
+    if (!Platform.isAndroid) return <AppFile>[];
+    
     await ensureStoragePermissions();
-    if (Platform.isAndroid) {
-      final baseRoot = rootDir ?? '/storage/emulated/0';
-      final roots = <Directory>[
-        Directory(baseRoot),
-        Directory('/storage/emulated/0/Android/media/com.whatsapp/WhatsApp/Media/WhatsApp Documents'),
-        Directory('/storage/emulated/0/WhatsApp/Media/WhatsApp Documents'),
-        Directory('/storage/emulated/0/Android/media/com.whatsapp.w4b/WhatsApp Business/Media/WhatsApp Business Documents'),
-        Directory('/storage/emulated/0/WhatsApp Business/Media/WhatsApp Business Documents'),
-      ];
-
-      final results = await Future.wait(
-        roots.map(
-          (dir) => _listSupportedFiles(
-            dir,
-            favorites: favorites,
-            excludedPaths: <String>{
-              '/storage/emulated/0/Download',
-              '/storage/emulated/0/Downloads',
-              '/storage/emulated/0/Android',
-              '/storage/emulated/0/DCIM',
-              '/storage/emulated/0/Pictures',
-              '/storage/emulated/0/Movies/.thumbnails',
-              '/storage/emulated/0/.Trash',
-              '/storage/emulated/0/Trash',
-              '/storage/emulated/0/Recycle Bin',
-              '/storage/emulated/0/.recycle',
-              '/storage/emulated/0/Deleted',
-              '/storage/emulated/0/.Deleted',
-            },
-          ),
-        ),
-      );
-
-      final combined = results.expand((list) => list).toList();
-      final seenPaths = <String>{};
-      final uniqueFiles = <AppFile>[];
-
-      for (final file in combined) {
-        if (seenPaths.add(file.path)) {
-          uniqueFiles.add(file);
-        }
-      }
-
-      uniqueFiles.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
-      return uniqueFiles;
+    
+    try {
+      final List<dynamic> result = await _channel.invokeMethod('fetchMediaStoreFiles');
+      final List<AppFile> files = result.map((item) {
+        final map = Map<String, dynamic>.from(item as Map);
+        return AppFile.fromMap(
+          map,
+          isFavorite: favorites.contains(map['path']),
+        );
+      }).toList();
+      
+      files.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+      return files;
+    } catch (e) {
+      debugPrint('MediaStore error: $e');
+      return <AppFile>[];
     }
-
-    final directory = await getApplicationDocumentsDirectory();
-    return _listSupportedFiles(directory, favorites: favorites);
   }
 
   Future<List<AppFile>> listDownloads({
     Set<String> favorites = const <String>{},
   }) async {
-    await ensureStoragePermissions();
-    final candidates = <Directory>[
-      Directory('/storage/emulated/0/Download'),
-      Directory('/storage/emulated/0/Downloads'),
-    ];
-
-    Directory? directory;
-    for (final candidate in candidates) {
-      if (await candidate.exists()) {
-        directory = candidate;
-        break;
-      }
-    }
-
-    directory ??= await getTemporaryDirectory();
-    return _listSupportedFiles(directory, favorites: favorites);
-  }
-
-  Future<List<AppFile>> _listSupportedFiles(
-    Directory directory, {
-    required Set<String> favorites,
-    Set<String> excludedPaths = const <String>{},
-  }) async {
-    if (!await directory.exists()) {
-      return <AppFile>[];
-    }
-
-    final normalizedExclusions = excludedPaths
-        .map((path) => p.normalize(path).toLowerCase())
-        .toList();
-    final entities = <File>[];
-    final pending = <Directory>[directory];
-
-    while (pending.isNotEmpty) {
-      final current = pending.removeLast();
-      final normalizedDirectory = p.normalize(current.path).toLowerCase();
-      if (_isIgnoredPath(normalizedDirectory)) {
-        continue;
-      }
-
-      final isExcludedDirectory = normalizedExclusions.any(
-        (path) =>
-            normalizedDirectory == path ||
-            normalizedDirectory.startsWith('$path${Platform.pathSeparator}'),
-      );
-      if (isExcludedDirectory) {
-        continue;
-      }
-
-      try {
-        await for (final entity in current.list(followLinks: false)) {
-          final normalizedPath = p.normalize(entity.path).toLowerCase();
-          if (_isIgnoredPath(normalizedPath)) {
-            continue;
-          }
-
-          final isExcluded = normalizedExclusions.any(
-            (path) =>
-                normalizedPath == path ||
-                normalizedPath.startsWith('$path${Platform.pathSeparator}'),
-          );
-          if (isExcluded) {
-            continue;
-          }
-
-          if (entity is Directory) {
-            pending.add(entity);
-            continue;
-          }
-
-          if (entity is! File) {
-            continue;
-          }
-
-          final extension = p
-              .extension(entity.path)
-              .replaceFirst('.', '')
-              .toLowerCase();
-          if (!supportedExtensions.contains(extension)) {
-            continue;
-          }
-
-          entities.add(entity);
-        }
-      } on FileSystemException {
-        // Skip unreadable folders and keep scanning the rest.
-      }
-    }
-
-    entities.sort((a, b) => b.statSync().modified.compareTo(a.statSync().modified));
-
-    return entities
-        .map(
-          (file) => AppFile.fromFileSystemEntity(
-            file,
-            isFavorite: favorites.contains(file.path),
-          ),
-        )
-        .toList();
+    final allFiles = await fetchMediaStoreDocuments(favorites: favorites);
+    return allFiles.where((file) {
+      final path = file.path.toLowerCase();
+      return path.contains('/download/') || path.contains('/downloads/');
+    }).toList();
   }
 
   Future<String> readTextFile(String path) {

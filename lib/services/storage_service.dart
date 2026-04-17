@@ -7,6 +7,7 @@ class StorageService {
   static const _lastOpenedPathKey = 'last_opened_path';
   static const _cachedSummaryKey = 'cached_summary';
   static const _darkModeKey = 'pref_dark_mode';
+  static const _lastScanTimeKey = 'last_scan_time';
 
   SharedPreferences? _prefs;
 
@@ -68,5 +69,16 @@ class StorageService {
   Future<void> setDarkModeEnabled(bool value) async {
     await init();
     await _prefs!.setBool(_darkModeKey, value);
+  }
+
+  Future<DateTime?> getLastScanTime() async {
+    await init();
+    final millis = _prefs!.getInt(_lastScanTimeKey);
+    return millis != null ? DateTime.fromMillisecondsSinceEpoch(millis) : null;
+  }
+
+  Future<void> setLastScanTime(DateTime time) async {
+    await init();
+    await _prefs!.setInt(_lastScanTimeKey, time.millisecondsSinceEpoch);
   }
 }

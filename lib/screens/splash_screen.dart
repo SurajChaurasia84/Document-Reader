@@ -120,13 +120,29 @@ class _SplashScreenState extends State<SplashScreen>
                 width: 140,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(2),
-                  child: LinearProgressIndicator(
-                    minHeight: 2.2,
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white.withValues(alpha: 0.72),
+                child: Column(
+                  children: [
+                    LinearProgressIndicator(
+                      minHeight: 2.2,
+                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Colors.white.withValues(alpha: 0.72),
+                      ),
                     ),
-                  ),
+                    if (appController.statusMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        appController.statusMessage!,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.1,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
                 ),
               ),
             ],

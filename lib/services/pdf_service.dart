@@ -147,17 +147,23 @@ class PdfService {
     final document = PdfDocument();
     document.pageSettings.size = PdfPageSize.a4;
     document.pageSettings.margins.all = 0;
+    
     for (final imagePath in imagePaths) {
       final page = document.pages.add();
-      final bytes = await File(imagePath).readAsBytes();
-      final bitmap = PdfBitmap(bytes);
+      
+      // Memory Guard: Optimize image before adding to PDF
+      final originalBytes = await File(imagePath).readAsBytes();
+      final optimizedBytes = await _downscaleImageIfNeeded(originalBytes);
+      
+      final bitmap = PdfBitmap(optimizedBytes);
       final size = page.getClientSize();
+      
       page.graphics.drawRectangle(
         brush: PdfSolidBrush(PdfColor(255, 255, 255)),
         bounds: Rect.fromLTWH(0, 0, size.width, size.height),
       );
 
-      final imageSize = await _readImageSize(bytes);
+      final imageSize = await _readImageSize(optimizedBytes);
       final fittedRect = _fitImageOnPage(
         imageWidth: imageSize.width,
         imageHeight: imageSize.height,
@@ -178,6 +184,38 @@ class PdfService {
     await File(filePath).writeAsBytes(document.saveSync(), flush: true);
     document.dispose();
     return filePath;
+  }
+
+  Future<Uint8List> _downscaleImageIfNeeded(Uint8List bytes) async {
+    const maxDimension = 1440.0;
+    final codec = await instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final width = frame.image.width.toDouble();
+    final height = frame.image.height.toDouble();
+
+    if (width <= maxDimension && height <= maxDimension) {
+      return bytes;
+    }
+
+    double targetWidth = width;
+    double targetHeight = height;
+
+    if (width > height) {
+      targetWidth = maxDimension;
+      targetHeight = (height * maxDimension) / width;
+    } else {
+      targetHeight = maxDimension;
+      targetWidth = (width * maxDimension) / height;
+    }
+
+    final resizedCodec = await instantiateImageCodec(
+      bytes,
+      targetWidth: targetWidth.toInt(),
+      targetHeight: targetHeight.toInt(),
+    );
+    final resizedFrame = await resizedCodec.getNextFrame();
+    final data = await resizedFrame.image.toByteData(format: ImageByteFormat.png);
+    return data!.buffer.asUint8List();
   }
 
   Future<List<String>> pdfToImages(String inputPath) async {

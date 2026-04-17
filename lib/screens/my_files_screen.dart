@@ -80,167 +80,201 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
     return Scaffold(
       backgroundColor: context.appBackground,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: controller.refreshAll,
-          color: context.selectedAccent,
-          backgroundColor: context.panelBackground,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-            children: <Widget>[
-              _HeaderRow(
-                isGridView: _isGridView,
-                isSearchActive: _showSearch,
-                onSearchTap: _toggleSearch,
-                onViewTap: () {
-                  setState(() {
-                    _isGridView = !_isGridView;
-                  });
-                },
+        child: Column(
+          children: [
+            if (controller.isScanning)
+              const LinearProgressIndicator(
+                minHeight: 1.5,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2D87F3)),
               ),
-              if (_showSearch) ...<Widget>[
-                const SizedBox(height: 14),
-                Container(
-                  decoration: BoxDecoration(
-                    color: context.searchBackground,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: context.borderColor),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    focusNode: _searchFocusNode,
-                    onChanged: (value) {
-                      setState(() {
-                        _query = value.trim().toLowerCase();
-                      });
-                    },
-                    style: TextStyle(color: context.primaryText),
-                    decoration: InputDecoration(
-                      hintText: 'Search files...',
-                      hintStyle: TextStyle(color: context.secondaryText),
-                      prefixIcon: Icon(
-                        Icons.search_rounded,
-                        color: context.secondaryText,
-                      ),
-                      suffixIcon: _query.isEmpty
-                          ? null
-                          : IconButton(
-                              onPressed: () {
-                                _searchController.clear();
-                                _searchFocusNode.unfocus();
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () => controller.refreshAll(forceFullScan: true),
+                color: context.selectedAccent,
+                backgroundColor: context.panelBackground,
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _HeaderRow(
+                              isGridView: _isGridView,
+                              isSearchActive: _showSearch,
+                              onSearchTap: _toggleSearch,
+                              onViewTap: () {
                                 setState(() {
-                                  _query = '';
+                                  _isGridView = !_isGridView;
                                 });
                               },
-                              icon: Icon(
-                                Icons.close_rounded,
+                            ),
+                            if (_showSearch) ...<Widget>[
+                              const SizedBox(height: 14),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: context.searchBackground,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border:
+                                      Border.all(color: context.borderColor),
+                                ),
+                                child: TextField(
+                                  controller: _searchController,
+                                  focusNode: _searchFocusNode,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _query = value.trim().toLowerCase();
+                                    });
+                                  },
+                                  style: TextStyle(color: context.primaryText),
+                                  decoration: InputDecoration(
+                                    hintText: 'Search files...',
+                                    hintStyle: TextStyle(
+                                        color: context.secondaryText),
+                                    prefixIcon: Icon(
+                                      Icons.search_rounded,
+                                      color: context.secondaryText,
+                                    ),
+                                    suffixIcon: _query.isEmpty
+                                        ? null
+                                        : IconButton(
+                                            onPressed: () {
+                                              _searchController.clear();
+                                              _searchFocusNode.unfocus();
+                                              setState(() {
+                                                _query = '';
+                                              });
+                                            },
+                                            icon: Icon(
+                                              Icons.close_rounded,
+                                              color: context.secondaryText,
+                                            ),
+                                          ),
+                                    border: InputBorder.none,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 4),
+                            Text(
+                              'All your documents in one place',
+                              style: TextStyle(
                                 color: context.secondaryText,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 4),
-              Text(
-                'All your documents in one place',
-                style: TextStyle(
-                  color: context.secondaryText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 18),
-              _SourceTabs(
-                current: _source,
-                onChanged: (value) {
-                  setState(() {
-                    _source = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 18),
-              Row(
-                children: <Widget>[
-                  Text(
-                    '${visibleFiles.length} files',
-                    style: TextStyle(
-                      color: context.secondaryText,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  _ImportButton(onTap: () => _showImportSheet(context, controller)),
-                  const Spacer(),
-                  _SortButton(
-                    label: _sort.label,
-                    onSelected: (value) {
-                      setState(() {
-                        _sort = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 34,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: MyFilesFilter.values.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final filter = MyFilesFilter.values[index];
-                    final selected = filter == _filter;
-                    final activeColor = selected
-                        ? AppFile.getColorForLabel(filter.label,
-                            fallback: context.primaryAccent)
-                        : context.selectedAccent;
-                    return _FilterChipButton(
-                      label: filter.label,
-                      selected: selected,
-                      activeColor: activeColor,
-                      onTap: () {
-                        setState(() {
-                          _filter = filter;
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (visibleFiles.isEmpty)
-                const _EmptyStateCard()
-              else
-                _isGridView
-                    ? GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: visibleFiles.length,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                              mainAxisExtent: 150,
+                            const SizedBox(height: 18),
+                            _SourceTabs(
+                              current: _source,
+                              onChanged: (value) {
+                                setState(() {
+                                  _source = value;
+                                });
+                              },
                             ),
-                        itemBuilder: (context, index) {
-                          final file = visibleFiles[index];
-                          return _MyFileGridCard(
-                            file: file,
-                            onTap: () => _openFile(context, file),
-                            onFavoriteTap: () => controller.toggleFavorite(file),
-                          );
-                        },
+                            const SizedBox(height: 18),
+                            Row(
+                              children: <Widget>[
+                                Text(
+                                  '${visibleFiles.length} files',
+                                  style: TextStyle(
+                                    color: context.secondaryText,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                _ImportButton(
+                                    onTap: () =>
+                                        _showImportSheet(context, controller)),
+                                const Spacer(),
+                                _SortButton(
+                                  label: _sort.label,
+                                  onSelected: (value) {
+                                    setState(() {
+                                      _sort = value;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              height: 34,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: MyFilesFilter.values.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(width: 8),
+                                itemBuilder: (context, index) {
+                                  final filter = MyFilesFilter.values[index];
+                                  final selected = filter == _filter;
+                                  final activeColor = selected
+                                      ? AppFile.getColorForLabel(filter.label,
+                                          fallback: context.primaryAccent)
+                                      : context.selectedAccent;
+                                  return _FilterChipButton(
+                                    label: filter.label,
+                                    selected: selected,
+                                    activeColor: activeColor,
+                                    onTap: () {
+                                      setState(() {
+                                        _filter = filter;
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (visibleFiles.isEmpty)
+                      const SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: Center(child: _EmptyStateCard()),
                       )
-                    : Column(
-                        children: visibleFiles
-                            .map(
-                              (file) => Padding(
+                    else if (_isGridView)
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                        sliver: SliverGrid(
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            mainAxisExtent: 150,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final file = visibleFiles[index];
+                              return _MyFileGridCard(
+                                file: file,
+                                onTap: () => _openFile(context, file),
+                                onFavoriteTap: () =>
+                                    controller.toggleFavorite(file),
+                              );
+                            },
+                            childCount: visibleFiles.length,
+                          ),
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final file = visibleFiles[index];
+                              return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: _MyFileCard(
                                   file: file,
@@ -248,12 +282,17 @@ class _MyFilesScreenState extends State<MyFilesScreen> {
                                   onFavoriteTap: () =>
                                       controller.toggleFavorite(file),
                                 ),
-                              ),
-                            )
-                            .toList(),
+                              );
+                            },
+                            childCount: visibleFiles.length,
+                          ),
+                        ),
                       ),
-            ],
-          ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

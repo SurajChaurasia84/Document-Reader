@@ -263,7 +263,31 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
     if (widget.file.isPdf) {
       if (_isPreparingPdf) {
-        return const Center(child: CircularProgressIndicator());
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(strokeWidth: 3),
+              const SizedBox(height: 24),
+              Text(
+                'Preparing your document...',
+                style: TextStyle(
+                  color: pdfForeground,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Optimizing for smooth scrolling',
+                style: TextStyle(
+                  color: pdfForeground.withValues(alpha: 0.6),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        );
       }
 
       if (_pdfController != null) {
@@ -275,6 +299,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               color: pdfBackground,
               child: PdfViewPinch(
                 controller: pdfController,
+                scrollDirection: Axis.vertical,
+                physics: const BouncingScrollPhysics(),
                 backgroundDecoration: BoxDecoration(color: pdfBackground),
               ),
             ),
@@ -523,24 +549,34 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     });
 
     try {
-      final bytes = await File(_currentFile.path).readAsBytes();
-      final validator = sfpdf.PdfDocument(
-        inputBytes: bytes,
+      // Use dynamic loading for large files to prevent OOM
+      final file = File(_currentFile.path);
+      final fileSizeMb = (await file.length()) / (1024 * 1024);
+      
+      // Open document once and keep it
+      final document = PdfDocument.openFile(
+        _currentFile.path,
         password: password,
       );
-      validator.dispose();
+
+      final doc = await document;
+      final pageCount = doc.pagesCount;
 
       _pdfController?.dispose();
       _pdfController = PdfControllerPinch(
-        document: PdfDocument.openFile(
-          _currentFile.path,
-          password: password,
-        ),
+        document: document,
       );
+      
       _pdfPassword = password;
       if (!mounted) {
         return;
       }
+      
+      // If it's a huge file, wait a bit for system to warm up
+      if (pageCount > 500 || fileSizeMb > 50) {
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+      }
+
       setState(() {
         _isPreparingPdf = false;
       });

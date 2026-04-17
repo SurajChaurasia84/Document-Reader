@@ -42,6 +42,7 @@ class AppController extends ChangeNotifier {
 
   bool isInitialized = false;
   bool isLoading = false;
+  bool isScanning = false;
   bool isDarkMode = true;
   int currentIndex = 0;
   String? statusMessage;
@@ -55,17 +56,68 @@ class AppController extends ChangeNotifier {
   AppFile? lastOpenedFile;
 
   Future<void> initialize() async {
-    await _runBusyTask(() async {
-      await storageService.init();
-      await databaseService.init();
-      isDarkMode = await storageService.getDarkModeEnabled();
-      await refreshAll();
-      isInitialized = true;
-    });
+    await storageService.init();
+    await databaseService.init();
+    isDarkMode = await storageService.getDarkModeEnabled();
+
+    // Check and request storage permissions first
+    try {
+      await fileService.ensureStoragePermissions();
+    } catch (e) {
+      statusMessage = 'Storage permission is required to list files';
+      debugPrint('Permission error: $e');
+    }
+
+    // Phase 1: Instant Load from DB
+    final cachedFiles = await databaseService.getAllScannedFiles();
+    final favorites = await storageService.getFavorites();
+    
+    internalFiles = cachedFiles
+        .map((f) => f.copyWith(isFavorite: favorites.contains(f.path)))
+        .toList();
+    _rebuildSecondaryLists(favorites);
+    await _syncRecentFiles(favorites);
+    
+    // We are "initialized" as soon as cache is loaded
+    isInitialized = true;
+    _safeNotifyListeners();
+
+    // Phase 2: Start background scan (now via fast MediaStore)
+    unawaited(refreshAll());
   }
 
-  Future<void> refreshAll() async {
+  Future<void> refreshAll({bool forceFullScan = false}) async {
+    if (isScanning) return;
+
     final favorites = await storageService.getFavorites();
+    
+    if (forceFullScan) {
+      internalFiles = <AppFile>[];
+      await databaseService.clearCache();
+    }
+
+    try {
+      isScanning = true;
+      _safeNotifyListeners();
+
+      // Rapid Native Scan
+      final files = await fileService.fetchMediaStoreDocuments(favorites: favorites);
+      
+      internalFiles = files;
+      await databaseService.saveScannedFiles(files);
+      
+      await storageService.setLastScanTime(DateTime.now());
+      _rebuildSecondaryLists(favorites);
+      _safeNotifyListeners();
+    } catch (e) {
+      debugPrint('MediaStore scan error: $e');
+    } finally {
+      isScanning = false;
+      _safeNotifyListeners();
+    }
+  }
+
+  Future<void> _syncRecentFiles(Set<String> favorites) async {
     final storedRecentFiles = await databaseService.getRecentFiles();
     final availableRecentFiles = <AppFile>[];
     for (final file in storedRecentFiles) {
@@ -78,21 +130,10 @@ class AppController extends ChangeNotifier {
       }
     }
     recentFiles = availableRecentFiles;
-    internalFiles = await fileService.listInternalFiles(favorites: favorites);
+  }
+
+  void _rebuildSecondaryLists(Set<String> favorites) async {
     downloadFiles = await fileService.listDownloads(favorites: favorites);
-
-    final overview = await storageInfoService.getStorageOverview();
-    final sdCardPath = overview?.sdCardStorage?.path;
-    isSdCardAvailable = overview?.sdCardStorage?.isAvailable ?? false;
-
-    if (isSdCardAvailable && sdCardPath != null && sdCardPath.isNotEmpty) {
-      sdCardFiles = await fileService.listInternalFiles(
-        favorites: favorites,
-        rootDir: sdCardPath,
-      );
-    } else {
-      sdCardFiles = <AppFile>[];
-    }
 
     favoriteFiles =
         <AppFile>[...recentFiles, ...internalFiles, ...downloadFiles, ...sdCardFiles]
@@ -122,7 +163,6 @@ class AppController extends ChangeNotifier {
         isFavorite: favorites.contains(lastPath),
       );
     }
-    _safeNotifyListeners();
   }
 
   void updateNavigation(int index) {
