@@ -48,12 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AppController>();
-    final allFiles = _dedupeFiles(<AppFile>[
-      ...controller.recentFiles,
-      ...controller.favoriteFiles,
-      ...controller.internalFiles,
-      ...controller.downloadFiles,
-    ]);
+    final allFiles = controller.allFilesDeduplicated;
     final filteredFiles = _filterFiles(allFiles, _query);
 
     final categories = <_HomeCategory>[
@@ -66,36 +61,36 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       _HomeCategory(
         title: 'PDF files',
-        count: allFiles.where((file) => file.extension == 'pdf').length,
-        files: allFiles.where((file) => file.extension == 'pdf').toList(),
+        count: controller.pdfFiles.length,
+        files: controller.pdfFiles,
         assetIcon: 'assets/pdf.png',
         color: const Color(0xFFFFEAEA),
       ),
       _HomeCategory(
         title: 'Word files',
-        count: allFiles.where((file) => file.extension == 'docx').length,
-        files: allFiles.where((file) => file.extension == 'docx').toList(),
+        count: controller.wordFiles.length,
+        files: controller.wordFiles,
         assetIcon: 'assets/doc.png',
         color: const Color(0xFFE8F0FF),
       ),
       _HomeCategory(
         title: 'Excel files',
-        count: allFiles.where((file) => file.extension == 'xlsx').length,
-        files: allFiles.where((file) => file.extension == 'xlsx').toList(),
+        count: controller.excelFiles.length,
+        files: controller.excelFiles,
         assetIcon: 'assets/xls.png',
         color: const Color(0xFFE6F4EA),
       ),
       _HomeCategory(
         title: 'PPT files',
-        count: allFiles.where((file) => file.extension == 'pptx').length,
-        files: allFiles.where((file) => file.extension == 'pptx').toList(),
+        count: controller.pptFiles.length,
+        files: controller.pptFiles,
         assetIcon: 'assets/ppt.png',
         color: const Color(0xFFFFF4E5),
       ),
       _HomeCategory(
         title: 'TXT files',
-        count: allFiles.where((file) => file.extension == 'txt').length,
-        files: allFiles.where((file) => file.extension == 'txt').toList(),
+        count: controller.txtFiles.length,
+        files: controller.txtFiles,
         assetIcon: 'assets/txt.png',
         color: const Color(0xFFF1F3F4),
       ),
