@@ -9,6 +9,7 @@ import '../services/app_controller.dart';
 import '../utils/formatters.dart';
 import '../utils/instant_page_route.dart';
 import '../utils/theme_utils.dart';
+import '../widgets/file_action_menu.dart';
 import 'document_viewer_screen.dart';
 import 'photo_preview_screen.dart';
 import 'scanner_screen.dart';
@@ -849,17 +850,10 @@ class _MyFileCard extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: onFavoriteTap,
-                splashRadius: 18,
-                icon: Icon(
-                  file.isFavorite
-                      ? Icons.star_rounded
-                      : Icons.star_border_rounded,
-                  color: file.isFavorite
-                      ? const Color(0xFFF3B63F)
-                      : context.secondaryText,
-                ),
+              StandardFileActionMenu(
+                file: file,
+                onOpen: onTap,
+                onChanged: onFavoriteTap,
               ),
             ],
           ),
@@ -947,18 +941,10 @@ class _MyFileGridCard extends StatelessWidget {
                           ),
                   ),
                   const Spacer(),
-                  IconButton(
-                    onPressed: onFavoriteTap,
-                    splashRadius: 18,
-                    visualDensity: VisualDensity.compact,
-                    icon: Icon(
-                      file.isFavorite
-                          ? Icons.star_rounded
-                          : Icons.star_border_rounded,
-                      color: file.isFavorite
-                          ? const Color(0xFFF3B63F)
-                          : context.secondaryText,
-                    ),
+                  StandardFileActionMenu(
+                    file: file,
+                    onOpen: onTap,
+                    onChanged: onFavoriteTap,
                   ),
                 ],
               ),
