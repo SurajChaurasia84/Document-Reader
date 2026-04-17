@@ -596,7 +596,10 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
                 message: 'No readable text found in this PowerPoint file.',
               );
             }
-            return _PresentationPreview(data: preview);
+            return _PresentationPreview(
+              data: preview,
+              searchQuery: _searchQuery,
+            );
           },
         );
       }
@@ -882,6 +885,24 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               );
             }
           }
+        }
+      }
+      return matches;
+    } else if (_currentFile.extension.toLowerCase() == 'pptx') {
+      final preview = await _presentationPreviewFuture;
+      if (preview == null) return const <_DocumentSearchMatch>[];
+      
+      final matches = <_DocumentSearchMatch>[];
+      for (int i = 0; i < preview.slides.length; i++) {
+        final slide = preview.slides[i];
+        final content = '${slide.title} ${slide.bullets.join(' ')}';
+        if (content.toLowerCase().contains(lowercaseQuery)) {
+          matches.add(
+            _DocumentSearchMatch(
+              pageNumber: i + 1, // Store slide number
+              snippet: slide.title.isNotEmpty ? slide.title : slide.bullets.firstOrNull ?? '',
+            ),
+          );
         }
       }
       return matches;
@@ -1729,90 +1750,163 @@ class _SpreadsheetGrid extends StatelessWidget {
 class _PresentationPreview extends StatelessWidget {
   const _PresentationPreview({
     required this.data,
+    this.searchQuery = '',
   });
 
   final PresentationPreviewData data;
+  final String searchQuery;
+
+  Widget _buildSlideText(String text, bool isTitle, BuildContext context) {
+    if (searchQuery.trim().isEmpty || !text.toLowerCase().contains(searchQuery.toLowerCase())) {
+      return Text(
+        text,
+        style: TextStyle(
+          color: isTitle ? const Color(0xFF111827) : const Color(0xFF4B5563),
+          fontSize: isTitle ? 20 : 14,
+          fontWeight: isTitle ? FontWeight.w800 : FontWeight.w500,
+          height: 1.2,
+        ),
+      );
+    }
+
+    final spans = <InlineSpan>[];
+    final lowerText = text.toLowerCase();
+    final lowerQuery = searchQuery.toLowerCase();
+    var start = 0;
+
+    while (true) {
+      final index = lowerText.indexOf(lowerQuery, start);
+      if (index == -1) {
+        break;
+      }
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index)));
+      }
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + searchQuery.length),
+          style: const TextStyle(
+            backgroundColor: Color(0xFFFACC15), // Yellow highlight
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+      start = index + searchQuery.length;
+    }
+
+    if (start < text.length) {
+      spans.add(TextSpan(text: text.substring(start)));
+    }
+
+    return Text.rich(
+      TextSpan(
+        style: TextStyle(
+          color: isTitle ? const Color(0xFF111827) : const Color(0xFF4B5563),
+          fontSize: isTitle ? 20 : 14,
+          fontWeight: isTitle ? FontWeight.w800 : FontWeight.w500,
+          height: 1.2,
+        ),
+        children: spans,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
-      itemCount: data.slides.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 1),
-      itemBuilder: (context, index) {
-        final slide = data.slides[index];
-        return Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: <Color>[
-                context.toolbarBlueStart.withValues(alpha: 0.35),
-                context.toolbarBlueEnd.withValues(alpha: 0.9),
+    final bgColor = context.isDarkMode ? const Color(0xFF111827) : const Color(0xFFF3F4F6);
+
+    return Container(
+      color: bgColor,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        itemCount: data.slides.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 24),
+        itemBuilder: (context, index) => _buildSlide(context, index),
+      ),
+    );
+  }
+
+  Widget _buildSlide(BuildContext context, int index) {
+    final slide = data.slides[index];
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Slide ${index + 1}',
-                  style: TextStyle(
-                    color: context.tertiaryText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  slide.title,
-                  style: TextStyle(
-                    color: context.primaryText,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    height: 1.2,
-                  ),
-                ),
-                if (slide.bullets.isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 14),
-                  ...slide.bullets.take(6).map(
-                    (bullet) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Container(
-                            margin: const EdgeInsets.only(top: 7),
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFB020),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              bullet,
-                              style: TextStyle(
-                                color: context.secondaryText,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                height: 1.45,
+            child: Stack(
+              children: [
+                // Slide Content
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      _buildSlideText(slide.title, true, context),
+                      if (slide.bullets.isNotEmpty) ...<Widget>[
+                        const SizedBox(height: 8),
+                        ListView(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: slide.bullets.map(
+                            (bullet) => Padding(
+                              padding: const EdgeInsets.only(bottom: 6),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: <Widget>[
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 5),
+                                    width: 4,
+                                    height: 4,
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFF16A34A),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildSlideText(bullet, false, context),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                // Slide Number
+                Positioned(
+                  right: 12,
+                  bottom: 8,
+                  child: Text(
+                    '${index + 1}',
+                    style: const TextStyle(
+                      color: Color(0xFF9CA3AF),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ],
+                ),
               ],
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }
