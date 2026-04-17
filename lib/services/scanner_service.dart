@@ -36,4 +36,19 @@ class ScannerService {
     }
     return outputPath;
   }
+
+  Future<String?> adjustEdges(String inputPath) async {
+    final outputPath = await createEdgeOutputPath();
+    final success = await EdgeDetection.detectEdgeFromGallery(
+      outputPath,
+      fromPath: inputPath,
+      androidCropTitle: 'Adjust edges',
+      androidCropBlackWhiteTitle: 'Enhance',
+      androidCropReset: 'Reset',
+    );
+    if (!success) {
+      return null;
+    }
+    return outputPath;
+  }
 }

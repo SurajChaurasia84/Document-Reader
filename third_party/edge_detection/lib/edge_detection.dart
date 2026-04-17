@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 
 class EdgeDetection {
-  static const MethodChannel _channel = const MethodChannel('edge_detection');
+  static const MethodChannel _channel = MethodChannel('edge_detection');
 
   /// Call this method to scan the object edge in live camera.
   static Future<bool> detectEdge(String saveTo,
@@ -24,9 +24,10 @@ class EdgeDetection {
     });
   }
 
-  /// Call this method to scan the object edge from a gallery image.
+  /// Call this method to scan the object edge from a gallery image or direct file path.
   static Future<bool> detectEdgeFromGallery(String saveTo,
       {
+        String? fromPath,
         String androidCropTitle = "Crop",
         String androidCropBlackWhiteTitle = "Black White",
         String androidCropReset = "Reset",
@@ -37,6 +38,7 @@ class EdgeDetection {
       'crop_black_white_title': androidCropBlackWhiteTitle,
       'crop_reset_title': androidCropReset,
       'from_gallery': true,
+      'from_path': fromPath,
     });
   }
 }

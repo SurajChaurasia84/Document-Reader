@@ -77,8 +77,12 @@ class ScanActivity : BaseActivity(), IScanView.Proxy {
             pickupFromGallery()
         }
 
-        if (initialBundle.containsKey(EdgeDetectionHandler.FROM_GALLERY) && initialBundle.getBoolean(EdgeDetectionHandler.FROM_GALLERY,false))
-        {
+        if (initialBundle.containsKey(EdgeDetectionHandler.FROM_PATH) && initialBundle.getString(EdgeDetectionHandler.FROM_PATH) != null) {
+            val path = initialBundle.getString(EdgeDetectionHandler.FROM_PATH)!!
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                onImageSelected(Uri.fromFile(File(path)))
+            }
+        } else if (initialBundle.containsKey(EdgeDetectionHandler.FROM_GALLERY) && initialBundle.getBoolean(EdgeDetectionHandler.FROM_GALLERY, false)) {
             pickupFromGallery()
         }
     }
