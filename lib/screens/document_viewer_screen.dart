@@ -1,8 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:pdfx/pdfx.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import 'package:share_plus/share_plus.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart' as sfpdf;
 
@@ -23,17 +24,27 @@ class DocumentViewerScreen extends StatefulWidget {
 
 class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   late final bool _fileExists = File(widget.file.path).existsSync();
-  PdfControllerPinch? _pdfController;
   late AppFile _currentFile = widget.file;
   late final AppController _appController;
   final TextEditingController _findController = TextEditingController();
   final FocusNode _findFocusNode = FocusNode();
+  final PdfViewerController _pdfViewerController = PdfViewerController();
+  
   double _zoomScale = 1;
   bool _isFindMode = false;
   bool _isSearching = false;
   String _searchQuery = '';
   List<_DocumentSearchMatch> _searchMatches = const <_DocumentSearchMatch>[];
   int _currentMatchIndex = 0;
+  int _currentPage = 1;
+  int _totalPages = 0;
+  bool _showScrubber = false;
+  Timer? _scrubberHideTimer;
+  bool _isDraggingScrubber = false;
+  double _totalPdfHeight = 0;
+  double _currentScrollY = 0;
+  double _viewportHeight = 0;
+  Timer? _scrollTimer;
   late final Future<String?> _textContentFuture = _currentFile.isText && _fileExists
       ? File(_currentFile.path).readAsString()
       : Future<String?>.value(null);
@@ -78,10 +89,96 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
 
   @override
   void dispose() {
-    _pdfController?.dispose();
+    _pdfViewerController.dispose();
     _findController.dispose();
     _findFocusNode.dispose();
+    _scrubberHideTimer?.cancel();
+    _scrollTimer?.cancel();
     super.dispose();
+  }
+
+  void _onPageChanged(PdfPageChangedDetails details) {
+    setState(() {
+      _currentPage = details.newPageNumber;
+    });
+    _showScrubberTemporarily();
+  }
+
+  void _onDocumentLoaded(PdfDocumentLoadedDetails details) {
+    double totalHeight = 0;
+    for (int i = 0; i < details.document.pages.count; i++) {
+      totalHeight += details.document.pages[i].size.height;
+    }
+    // Add page spacing (5px as defined in SfPdfViewer)
+    totalHeight += (details.document.pages.count - 1) * 5;
+
+    setState(() {
+      _totalPages = details.document.pages.count;
+      _totalPdfHeight = totalHeight;
+      _isPreparingPdf = false;
+    });
+
+    // Start polling for scroll updates since SfPdfViewer has no onScrollChanged
+    _startScrollPolling();
+  }
+
+  void _startScrollPolling() {
+    _scrollTimer?.cancel();
+    _scrollTimer = Timer.periodic(const Duration(milliseconds: 32), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      final newOffset = _pdfViewerController.scrollOffset.dy;
+      if (newOffset != _currentScrollY && !_isDraggingScrubber) {
+        setState(() {
+          _currentScrollY = newOffset;
+        });
+        if (newOffset != 0) _showScrubberTemporarily();
+      }
+    });
+  }
+
+  void _showScrubberTemporarily() {
+    if (_isDraggingScrubber) return;
+    
+    _scrubberHideTimer?.cancel();
+    if (!_showScrubber) {
+      setState(() => _showScrubber = true);
+    }
+    
+    _scrubberHideTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted && !_isDraggingScrubber) {
+        setState(() => _showScrubber = false);
+      }
+    });
+  }
+
+  void _onScrubberDragStart(DragStartDetails details) {
+    _scrubberHideTimer?.cancel();
+    setState(() {
+      _isDraggingScrubber = true;
+      _showScrubber = true;
+    });
+  }
+
+  void _onScrubberDragUpdate(DragUpdateDetails details, double maxHeight) {
+    if (_totalPdfHeight <= 0) return;
+    
+    final ratio = (details.localPosition.dy / maxHeight).clamp(0.0, 1.0);
+    final targetY = ratio * (_totalPdfHeight - _viewportHeight);
+    
+    _pdfViewerController.jumpTo(yOffset: targetY);
+    
+    setState(() {
+      _currentScrollY = targetY;
+    });
+    _showScrubberTemporarily();
+  }
+
+  void _onScrubberDragEnd(DragEndDetails details) {
+    setState(() => _isDraggingScrubber = false);
+    _showScrubberTemporarily();
   }
 
   @override
@@ -230,8 +327,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   }
 
   Widget _buildContent(BuildContext context) {
-    final usePdfChrome = _currentFile.isPdf && _fileExists;
-    final isPaperLike = _isPaperLikeFile;
     final pdfBackground = context.isDarkMode ? Colors.black : Colors.white;
     final pdfForeground = context.isDarkMode
         ? Colors.white
@@ -262,100 +357,137 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     }
 
     if (widget.file.isPdf) {
-      if (_isPreparingPdf) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircularProgressIndicator(strokeWidth: 3),
-              const SizedBox(height: 24),
-              Text(
-                'Preparing your document...',
-                style: TextStyle(
-                  color: pdfForeground,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          _viewportHeight = constraints.maxHeight;
+          final scrubHeight = constraints.maxHeight - 40;
+          double thumbY = 0;
+          
+          final maxScroll = _totalPdfHeight - _viewportHeight;
+          if (maxScroll > 0) {
+            thumbY = (_currentScrollY / maxScroll) * scrubHeight;
+          }
+
+          return Stack(
+            children: <Widget>[
+              Positioned.fill(
+                child: Container(
+                  color: pdfBackground,
+                  child: SfPdfViewer.file(
+                    File(_currentFile.path),
+                    controller: _pdfViewerController,
+                    pageSpacing: 5,
+                    onPageChanged: _onPageChanged,
+                    onDocumentLoaded: _onDocumentLoaded,
+                    password: _pdfPassword,
+                    enableDoubleTapZooming: true,
+                    canShowScrollHead: false,
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Optimizing for smooth scrolling',
-                style: TextStyle(
-                  color: pdfForeground.withValues(alpha: 0.6),
-                  fontSize: 13,
+              // THE SCRUBBER TRACK
+              Positioned(
+                right: 4,
+                top: 20,
+                bottom: 20,
+                child: AnimatedOpacity(
+                  opacity: _showScrubber ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: GestureDetector(
+                    onVerticalDragStart: _onScrubberDragStart,
+                    onVerticalDragUpdate: (d) => _onScrubberDragUpdate(d, scrubHeight),
+                    onVerticalDragEnd: _onScrubberDragEnd,
+                    child: Container(
+                      width: 32,
+                      color: Colors.transparent,
+                      alignment: Alignment.topRight,
+                      child: Container(
+                        width: 4,
+                        decoration: BoxDecoration(
+                          color: pdfForeground.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (_showScrubber && _totalPages > 0)
+                Positioned(
+                  right: 8,
+                  top: 20 + thumbY.clamp(0.0, scrubHeight),
+                  child: GestureDetector(
+                    onVerticalDragStart: _onScrubberDragStart,
+                    onVerticalDragUpdate: (details) {
+                      if (_totalPdfHeight <= 0) return;
+                      // Move based on delta to allow grabbing the bubble itself
+                      final deltaRatio = details.delta.dy / scrubHeight;
+                      final newScrollY = (_currentScrollY + deltaRatio * (_totalPdfHeight - _viewportHeight))
+                          .clamp(0.0, _totalPdfHeight - _viewportHeight);
+                      
+                      _pdfViewerController.jumpTo(yOffset: newScrollY);
+                      setState(() {
+                        _currentScrollY = newScrollY;
+                      });
+                      _showScrubberTemporarily();
+                    },
+                    onVerticalDragEnd: _onScrubberDragEnd,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                      // THE BUBBLE
+                      AnimatedOpacity(
+                        opacity: (_showScrubber || _isDraggingScrubber) ? 1.0 : 0.0,
+                        duration: const Duration(milliseconds: 200),
+                        child: _PageBubble(
+                          currentPage: _currentPage,
+                          totalPages: _totalPages,
+                          backgroundColor: context.panelBackground,
+                          textColor: pdfForeground,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // THE THUMB
+                      Container(
+                        width: 6,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).primaryColor.withValues(alpha: 0.4),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 14,
+                bottom: 22,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const SizedBox(height: 12),
+                    _ZoomActionButton(
+                      icon: Icons.add_rounded,
+                      onTap: () => _pdfViewerController.zoomLevel = (_pdfViewerController.zoomLevel + 0.25).clamp(1.0, 3.0),
+                    ),
+                    const SizedBox(height: 10),
+                    _ZoomActionButton(
+                      icon: Icons.remove_rounded,
+                      onTap: () => _pdfViewerController.zoomLevel = (_pdfViewerController.zoomLevel - 0.25).clamp(1.0, 3.0),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-        );
-      }
-
-      if (_pdfController != null) {
-        final pdfController = _pdfController!;
-      return Stack(
-        children: <Widget>[
-          Positioned.fill(
-            child: Container(
-              color: pdfBackground,
-              child: PdfViewPinch(
-                controller: pdfController,
-                scrollDirection: Axis.vertical,
-                physics: const BouncingScrollPhysics(),
-                backgroundDecoration: BoxDecoration(color: pdfBackground),
-              ),
-            ),
-          ),
-          Positioned(
-            right: 14,
-            bottom: 22,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: context.isDarkMode
-                        ? Colors.black.withValues(alpha: 0.58)
-                        : Colors.white.withValues(alpha: 0.92),
-                    borderRadius: BorderRadius.circular(999),
-                    border: context.isDarkMode
-                        ? null
-                        : Border.all(color: context.borderColor),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    child: PdfPageNumber(
-                      controller: pdfController,
-                      builder: (context, loadingState, page, pagesCount) {
-                        final total = pagesCount ?? 0;
-                        return Text(
-                          '$page / $total',
-                          style: TextStyle(
-                            color: pdfForeground,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _ZoomActionButton(
-                  icon: Icons.add_rounded,
-                  onTap: _zoomIn,
-                ),
-                const SizedBox(height: 10),
-                _ZoomActionButton(
-                  icon: Icons.remove_rounded,
-                  onTap: _zoomOut,
-                ),
-              ],
-            ),
-          ),
-        ],
+          );
+        },
       );
     }
 
@@ -387,7 +519,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           ),
         );
       }
-    }
 
     if (widget.file.isText) {
       return FutureBuilder<String>(
@@ -516,27 +647,6 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     );
   }
 
-  void _zoomIn() {
-    _setZoom((_zoomScale + 0.25).clamp(1.0, 4.0));
-  }
-
-  void _zoomOut() {
-    _setZoom((_zoomScale - 0.25).clamp(1.0, 4.0));
-  }
-
-  void _setZoom(double nextScale) {
-    if (_pdfController == null) {
-      return;
-    }
-    setState(() {
-      _zoomScale = nextScale;
-      _pdfController!.value = Matrix4.diagonal3Values(
-        _zoomScale,
-        _zoomScale,
-        1,
-      );
-    });
-  }
 
   Future<void> _preparePdf([String? password]) async {
     if (!_currentFile.isPdf || !_fileExists) {
@@ -546,62 +656,12 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       _isPreparingPdf = true;
       _pdfOpenError = null;
       _pdfNeedsPassword = false;
-    });
-
-    try {
-      // Use dynamic loading for large files to prevent OOM
-      final file = File(_currentFile.path);
-      final fileSizeMb = (await file.length()) / (1024 * 1024);
-      
-      // Open document once and keep it
-      final document = PdfDocument.openFile(
-        _currentFile.path,
-        password: password,
-      );
-
-      final doc = await document;
-      final pageCount = doc.pagesCount;
-
-      _pdfController?.dispose();
-      _pdfController = PdfControllerPinch(
-        document: document,
-      );
-      
       _pdfPassword = password;
-      if (!mounted) {
-        return;
-      }
-      
-      // If it's a huge file, wait a bit for system to warm up
-      if (pageCount > 500 || fileSizeMb > 50) {
-        await Future<void>.delayed(const Duration(milliseconds: 600));
-      }
-
-      setState(() {
-        _isPreparingPdf = false;
-      });
-    } catch (error) {
-      final message = error.toString().replaceFirst('Exception: ', '');
-      final passwordIssue = _looksLikePasswordError(message);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _isPreparingPdf = false;
-        _pdfController?.dispose();
-        _pdfController = null;
-        _pdfNeedsPassword = passwordIssue;
-        _pdfOpenError = passwordIssue ? null : message;
-      });
-    }
+    });
+    // Syncfusion SfPdfViewer.file handles the actual loading 
+    // when password or path changes.
   }
 
-  bool _looksLikePasswordError(String message) {
-    final lower = message.toLowerCase();
-    return lower.contains('password') ||
-        lower.contains('encrypted') ||
-        lower.contains('cannot open an encrypted document');
-  }
 
   Future<void> _requestPdfPassword({bool showInvalidMessage = false}) async {
     if (_isPasswordPromptOpen || !mounted) {
@@ -1007,12 +1067,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
   }
 
   Future<void> _openMatch(_DocumentSearchMatch match) async {
-    if (_currentFile.isPdf && _pdfController != null) {
-      await _pdfController!.animateToPage(
-        pageNumber: match.pageNumber,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-      );
+    if (_currentFile.isPdf) {
+      _pdfViewerController.jumpToPage(match.pageNumber);
     }
   }
 
@@ -1521,6 +1577,47 @@ class _PresentationPreview extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _PageBubble extends StatelessWidget {
+  const _PageBubble({
+    required this.currentPage,
+    required this.totalPages,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final int currentPage;
+  final int totalPages;
+  final Color backgroundColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Text(
+        'Page $currentPage of $totalPages',
+        style: TextStyle(
+          color: textColor,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.2,
+        ),
+      ),
     );
   }
 }
