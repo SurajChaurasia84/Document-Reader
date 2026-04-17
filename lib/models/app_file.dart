@@ -27,6 +27,7 @@ class AppFile {
   bool get isOffice =>
       ['doc', 'docx', 'xlsx', 'pptx'].contains(extension.toLowerCase());
   String get displayType => extension.toUpperCase();
+  String get nameWithoutExtension => p.basenameWithoutExtension(path);
 
   String? get assetIcon {
     switch (extension.toLowerCase()) {
