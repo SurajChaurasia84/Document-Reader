@@ -52,6 +52,15 @@ class AppController extends ChangeNotifier {
   List<AppFile> internalFiles = <AppFile>[];
   List<AppFile> downloadFiles = <AppFile>[];
   List<AppFile> sdCardFiles = <AppFile>[];
+  
+  // CACHED CATEGORIES (Optimization for large datasets)
+  List<AppFile> pdfFiles = <AppFile>[];
+  List<AppFile> wordFiles = <AppFile>[];
+  List<AppFile> excelFiles = <AppFile>[];
+  List<AppFile> pptFiles = <AppFile>[];
+  List<AppFile> txtFiles = <AppFile>[];
+  List<AppFile> allFilesDeduplicated = <AppFile>[];
+
   bool isSdCardAvailable = false;
   AppFile? lastOpenedFile;
 
@@ -135,16 +144,23 @@ class AppController extends ChangeNotifier {
   void _rebuildSecondaryLists(Set<String> favorites) async {
     downloadFiles = await fileService.listDownloads(favorites: favorites);
 
-    favoriteFiles =
-        <AppFile>[...recentFiles, ...internalFiles, ...downloadFiles, ...sdCardFiles]
-            .where((file) => favorites.contains(file.path))
-            .fold<Map<String, AppFile>>(<String, AppFile>{}, (map, file) {
-              map[file.path] = file.copyWith(isFavorite: true);
-              return map;
-            })
-            .values
-            .toList()
-          ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    // Deduplicate and Sort once
+    final map = <String, AppFile>{};
+    for (final file in <AppFile>[...recentFiles, ...internalFiles, ...downloadFiles, ...sdCardFiles]) {
+      map[file.path] = file.copyWith(isFavorite: favorites.contains(file.path));
+    }
+    
+    allFilesDeduplicated = map.values.toList()
+      ..sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+
+    // Pre-calculate categories (Main thread is fine for this single pass)
+    pdfFiles = allFilesDeduplicated.where((f) => f.extension.toLowerCase() == 'pdf').toList();
+    wordFiles = allFilesDeduplicated.where((f) => ['doc', 'docx'].contains(f.extension.toLowerCase())).toList();
+    excelFiles = allFilesDeduplicated.where((f) => ['xls', 'xlsx'].contains(f.extension.toLowerCase())).toList();
+    pptFiles = allFilesDeduplicated.where((f) => ['ppt', 'pptx'].contains(f.extension.toLowerCase())).toList();
+    txtFiles = allFilesDeduplicated.where((f) => f.extension.toLowerCase() == 'txt').toList();
+
+    favoriteFiles = allFilesDeduplicated.where((file) => file.isFavorite).toList();
 
     final lastPath = await storageService.getLastOpenedPath();
     final allFiles = <AppFile>[
