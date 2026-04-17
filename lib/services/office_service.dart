@@ -11,9 +11,7 @@ class OfficeService {
   Future<String> extractWordText(String inputPath) async {
     final extension = p.extension(inputPath).toLowerCase();
     if (extension == '.doc') {
-      throw Exception(
-        'Legacy .doc files are not supported yet. Please use a .docx file.',
-      );
+      return _extractLegacyText(inputPath);
     }
     if (extension != '.docx') {
       throw Exception('Please select a Word .docx file.');
@@ -51,9 +49,7 @@ class OfficeService {
   Future<String> extractSpreadsheetText(String inputPath) async {
     final extension = p.extension(inputPath).toLowerCase();
     if (extension == '.xls') {
-      throw Exception(
-        'Legacy .xls files are not supported yet. Please use a .xlsx file.',
-      );
+      return _extractLegacyText(inputPath);
     }
     if (extension != '.xlsx') {
       throw Exception('Please select an Excel .xlsx file.');
@@ -196,9 +192,7 @@ class OfficeService {
   Future<String> extractPresentationText(String inputPath) async {
     final extension = p.extension(inputPath).toLowerCase();
     if (extension == '.ppt') {
-      throw Exception(
-        'Legacy .ppt files are not supported yet. Please use a .pptx file.',
-      );
+      return _extractLegacyText(inputPath);
     }
     if (extension != '.pptx') {
       throw Exception('Please select a PowerPoint .pptx file.');
@@ -418,6 +412,43 @@ class OfficeService {
       return normalized;
     }
     return '$normalized.pdf';
+  }
+
+  Future<String> _extractLegacyText(String inputPath) async {
+    try {
+      final bytes = await File(inputPath).readAsBytes();
+      final buffer = StringBuffer();
+      
+      // Look for sequences of printable ASCII characters
+      var currentSequence = <int>[];
+      
+      for (final byte in bytes) {
+        if ((byte >= 32 && byte <= 126) || byte == 10 || byte == 13 || byte == 9) {
+          currentSequence.add(byte);
+        } else {
+          if (currentSequence.length >= 4) {
+            final text = String.fromCharCodes(currentSequence).trim();
+            if (text.isNotEmpty) {
+              buffer.write('$text ');
+            }
+          }
+          currentSequence = [];
+        }
+      }
+      
+      if (currentSequence.length >= 4) {
+        buffer.write(String.fromCharCodes(currentSequence));
+      }
+
+      final result = buffer.toString().trim().replaceAll(RegExp(r'\s+'), ' ');
+      if (result.isEmpty) {
+        throw Exception('No readable text could be extracted from this legacy file.');
+      }
+      
+      return '--- LEGACY PREVIEW (Limited Formatting) ---\n\n$result';
+    } catch (e) {
+      throw Exception('Unable to read this legacy file: ${e.toString()}');
+    }
   }
 }
 
