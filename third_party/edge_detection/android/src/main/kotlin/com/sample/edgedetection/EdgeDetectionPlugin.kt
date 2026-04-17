@@ -44,6 +44,7 @@ class EdgeDetectionHandler : MethodCallHandler, PluginRegistry.ActivityResultLis
     companion object {
         const val INITIAL_BUNDLE = "initial_bundle"
         const val FROM_GALLERY = "from_gallery"
+        const val FROM_PATH = "from_path"
         const val SAVE_TO = "save_to"
         const val CAN_USE_GALLERY = "can_use_gallery"
         const val SCAN_TITLE = "scan_title"

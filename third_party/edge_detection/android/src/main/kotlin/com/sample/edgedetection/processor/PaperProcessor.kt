@@ -8,6 +8,7 @@ import org.opencv.imgproc.Imgproc
 import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sqrt
+import kotlin.math.atan2
 
 const val TAG: String = "PaperProcessor"
 
@@ -140,7 +141,6 @@ private fun getCorners(contours: List<MatOfPoint>, size: Size): Corners? {
 
     return null
 }
-import kotlin.math.atan2
 
 private fun sortPoints(points: List<Point>): List<Point> {
     if (points.size != 4) return points
