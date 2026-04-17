@@ -144,39 +144,77 @@ class OfficeService {
       final xml = XmlDocument.parse(
         String.fromCharCodes(file.content as List<int>),
       );
-      final rows = <List<String>>[];
 
-      for (final row in xml.findAllElements('row')) {
-        final cells = <String>[];
-        for (final cell in row.findAllElements('c')) {
-          final type = cell.getAttribute('t');
-          final valueNode = cell.getElement('v');
-          if (valueNode == null) {
-            continue;
+      // We use a Map of row index to a Map of column index to value
+      // This allows us to handle sparse Excel data correctly.
+      final Map<int, Map<int, String>> grid = {};
+      int maxCol = 0;
+      int maxRow = 0;
+
+      for (final rowNode in xml.findAllElements('row')) {
+        final rAttr = rowNode.getAttribute('r');
+        int rowIndex = rAttr != null ? int.parse(rAttr) - 1 : maxRow;
+        if (rowIndex > maxRow) maxRow = rowIndex;
+
+        if (!grid.containsKey(rowIndex)) grid[rowIndex] = {};
+
+        for (final cellNode in rowNode.findAllElements('c')) {
+          final ref = cellNode.getAttribute('r');
+          int colIndex = -1;
+          if (ref != null) {
+            final coords = _rowAndColFromRef(ref);
+            colIndex = coords.$2;
+            // rowIndex from ref should match rowIndex from row node
           }
-          final raw = valueNode.innerText.trim();
-          if (raw.isEmpty) {
-            continue;
-          }
-          if (type == 's') {
-            final index = int.tryParse(raw);
-            if (index != null && index >= 0 && index < sharedStrings.length) {
-              cells.add(sharedStrings[index]);
+
+          final type = cellNode.getAttribute('t');
+          final valueNode = cellNode.getElement('v');
+          String value = '';
+          
+          if (valueNode != null) {
+            final raw = valueNode.innerText.trim();
+            if (type == 's') {
+              final index = int.tryParse(raw);
+              if (index != null && index >= 0 && index < sharedStrings.length) {
+                value = sharedStrings[index];
+              }
+            } else {
+              value = raw;
             }
-          } else {
-            cells.add(raw);
+          }
+
+          if (colIndex != -1) {
+            grid[rowIndex]![colIndex] = value;
+            if (colIndex > maxCol) maxCol = colIndex;
           }
         }
-        if (cells.isNotEmpty) {
-          rows.add(cells);
+        maxRow++;
+      }
+
+      // Convert the sparse Map to a regular 2D List
+      final List<List<String>> finalRows = [];
+      if (maxRow > 0 || maxCol > 0) {
+        // We add +1 because maxCol/maxRow are indices
+        final numCols = maxCol + 1;
+        final numRows = maxRow + 1;
+
+        for (int r = 0; r < numRows; r++) {
+          final List<String> rowList = List.filled(numCols, '');
+          final rowData = grid[r];
+          if (rowData != null) {
+            rowData.forEach((c, val) {
+              rowList[c] = val;
+            });
+          }
+          finalRows.add(rowList);
         }
       }
 
-      if (rows.isNotEmpty) {
+      if (finalRows.isNotEmpty) {
         sheets.add(
           SpreadsheetSheetData(
             name: workbook[i],
-            rows: rows,
+            rows: finalRows,
           ),
         );
       }
@@ -449,6 +487,24 @@ class OfficeService {
     } catch (e) {
       throw Exception('Unable to read this legacy file: ${e.toString()}');
     }
+  }
+
+  /// Converts a cell reference like "A1" or "AB10" into (row index, column index).
+  (int, int) _rowAndColFromRef(String ref) {
+    final colMatch = RegExp(r'[A-Z]+').firstMatch(ref);
+    final rowMatch = RegExp(r'[0-9]+').firstMatch(ref);
+    
+    if (colMatch == null || rowMatch == null) return (0, 0);
+    
+    final colStr = colMatch.group(0)!;
+    final rowStr = rowMatch.group(0)!;
+    
+    int colIndex = 0;
+    for (int i = 0; i < colStr.length; i++) {
+      colIndex = colIndex * 26 + (colStr.codeUnitAt(i) - 64);
+    }
+    
+    return (int.parse(rowStr) - 1, colIndex - 1);
   }
 }
 

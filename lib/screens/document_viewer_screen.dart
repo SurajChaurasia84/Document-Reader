@@ -1384,108 +1384,149 @@ class _SpreadsheetPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
-      itemCount: data.sheets.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 1),
-      itemBuilder: (context, index) {
-        final sheet = data.sheets[index];
-        final visibleRows = sheet.rows;
-        final columnCount = visibleRows.fold<int>(
-          0,
-          (max, row) => row.length > max ? row.length : max,
-        );
-        final normalizedRows = visibleRows
-            .map(
-              (row) => List<String>.generate(
-                columnCount,
-                (columnIndex) => columnIndex < row.length ? row[columnIndex] : '',
+    if (data.sheets.isEmpty) {
+      return const _OfficePreviewError(message: 'No sheets found in this file.');
+    }
+
+    return DefaultTabController(
+      length: data.sheets.length,
+      child: Column(
+        children: [
+          Expanded(
+            child: TabBarView(
+              physics: const NeverScrollableScrollPhysics(),
+              children: data.sheets.map((sheet) => _SpreadsheetGrid(sheet: sheet)).toList(),
+            ),
+          ),
+          // SHEET TABS AT BOTTOM
+          Container(
+            decoration: BoxDecoration(
+              color: context.isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFF9FAFB),
+              border: Border(top: BorderSide(color: context.borderColor)),
+            ),
+            child: SafeArea(
+              top: false,
+              child: TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                indicatorColor: const Color(0xFF16A34A),
+                labelColor: const Color(0xFF16A34A),
+                unselectedLabelColor: context.secondaryText,
+                indicatorWeight: 3,
+                tabs: data.sheets.map((sheet) => Tab(text: sheet.name)).toList(),
               ),
-            )
-            .toList();
-        final header = normalizedRows.first;
-        final rows = normalizedRows.skip(1).toList();
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  const Icon(
-                    Icons.table_chart_rounded,
-                    color: Color(0xFF16A34A),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      sheet.name,
-                      style: TextStyle(
-                        color: context.primaryText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SpreadsheetGrid extends StatelessWidget {
+  const _SpreadsheetGrid({required this.sheet});
+  final SpreadsheetSheetData sheet;
+
+  String _getColumnLabel(int index) {
+    String label = '';
+    int n = index + 1;
+    while (n > 0) {
+      int m = (n - 1) % 26;
+      label = String.fromCharCode(65 + m) + label;
+      n = (n - m) ~/ 26;
+    }
+    return label;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final int rowCount = sheet.rows.length;
+    final int colCount = rowCount > 0 ? sheet.rows[0].length : 0;
+    
+    final headerBg = const Color(0xFFF3F4F6);
+    final borderColor = const Color(0xFFE5E7EB);
+    final cellPadding = const EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+
+    return InteractiveViewer(
+      alignment: Alignment.topLeft,
+      constrained: false,
+      boundaryMargin: EdgeInsets.zero,
+      minScale: 0.5,
+      maxScale: 2.5,
+      child: Container(
+        color: Colors.white,
+        child: Table(
+          defaultColumnWidth: const IntrinsicColumnWidth(),
+          border: TableBorder.all(color: borderColor, width: 0.5),
+          children: [
+            // COLUMN HEADERS (A, B, C...)
+            TableRow(
+              children: [
+                // Corner cell (empty)
+                Container(
+                  color: headerBg,
+                  width: 40,
+                  height: 32,
+                  child: const Center(child: Text('', style: TextStyle(fontSize: 10))),
+                ),
+                for (int i = 0; i < colCount; i++)
+                  Container(
+                    color: headerBg,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    constraints: const BoxConstraints(minWidth: 80),
+                    child: Center(
+                      child: Text(
+                        _getColumnLabel(i),
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
+              ],
+            ),
+            // DATA ROWS
+            for (int r = 0; r < rowCount; r++)
+              TableRow(
+                children: [
+                  // ROW NUMBER (1, 2, 3...)
+                  Container(
+                    color: headerBg,
+                    width: 40,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Center(
+                      child: Text(
+                        '${r + 1}',
+                        style: const TextStyle(
+                          color: Color(0xFF6B7280),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // CELLS
+                  for (int c = 0; c < colCount; c++)
+                    Container(
+                      padding: cellPadding,
+                      constraints: const BoxConstraints(minWidth: 80),
+                      child: Text(
+                        sheet.rows[r][c],
+                        style: const TextStyle(
+                          color: Color(0xFF111827),
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                 ],
               ),
-              const SizedBox(height: 14),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Table(
-                  defaultColumnWidth: const IntrinsicColumnWidth(),
-                  children: <TableRow>[
-                    TableRow(
-                      decoration: BoxDecoration(
-                        color: context.softPanel,
-                      ),
-                      children: header
-                          .map(
-                            (cell) => Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Text(
-                                cell,
-                                style: TextStyle(
-                                  color: context.primaryText,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    ...rows.map(
-                      (row) => TableRow(
-                        decoration: BoxDecoration(
-                          border: Border(
-                            top: BorderSide(color: context.borderColor),
-                          ),
-                        ),
-                        children: row
-                            .map(
-                              (cell) => Padding(
-                                padding: const EdgeInsets.all(10),
-                                child: Text(
-                                  cell,
-                                  style: TextStyle(
-                                    color: context.secondaryText,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }
