@@ -167,16 +167,23 @@ class FileService {
     
     try {
       final List<dynamic> result = await _channel.invokeMethod('fetchMediaStoreFiles');
-      final List<AppFile> files = result.map((item) {
-        final map = Map<String, dynamic>.from(item as Map);
-        return AppFile.fromMap(
-          map,
-          isFavorite: favorites.contains(map['path']),
-        );
-      }).toList();
-      
-      files.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
-      return files;
+      if (result.isEmpty) return <AppFile>[];
+
+      // OFF-LOAD TO BACKGROUND ISOLATE
+      // This prevents UI freezes when parsing 10k+ files
+      return await Isolate.run(() {
+        final List<AppFile> parsedFiles = result.map((item) {
+          final map = Map<String, dynamic>.from(item as Map);
+          return AppFile.fromMap(
+            map,
+            isFavorite: favorites.contains(map['path']),
+          );
+        }).toList();
+
+        // Sort in background
+        parsedFiles.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+        return parsedFiles;
+      });
     } catch (e) {
       debugPrint('MediaStore error: $e');
       return <AppFile>[];
