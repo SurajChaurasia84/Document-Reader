@@ -78,15 +78,23 @@ class DatabaseService {
 
   Future<void> saveScannedFiles(List<AppFile> files) async {
     await init();
-    final batch = _database!.batch();
-    for (final file in files) {
-      batch.insert(
-        _tableScanned,
-        file.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+    
+    // Chunk the data into batches of 5000 to prevent long database locks
+    const chunkSize = 5000;
+    for (var i = 0; i < files.length; i += chunkSize) {
+      final end = (i + chunkSize < files.length) ? i + chunkSize : files.length;
+      final chunk = files.sublist(i, end);
+      
+      final batch = _database!.batch();
+      for (final file in chunk) {
+        batch.insert(
+          _tableScanned,
+          file.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      await batch.commit(noResult: true);
     }
-    await batch.commit(noResult: true);
   }
 
   Future<List<AppFile>> getAllScannedFiles() async {
