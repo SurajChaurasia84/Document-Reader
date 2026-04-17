@@ -570,8 +570,11 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
               );
             }
             return _SpreadsheetPreview(
+              key: ValueKey('spreadsheet_${_currentFile.path}'),
               data: preview,
               searchQuery: _searchQuery,
+              currentMatchIndex: _currentMatchIndex,
+              matches: _searchMatches,
             );
           },
         );
@@ -739,7 +742,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
           context,
           _currentFile.name,
         );
-        if (nextName == null) {
+        if (!mounted || nextName == null || nextName == _currentFile.name) {
           return;
         }
         final renamed = await controller.renameFile(_currentFile, nextName);
@@ -857,6 +860,31 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
     if (_currentFile.isText) {
       final text = await File(_currentFile.path).readAsString();
       return _collectMatches(text, lowercaseQuery, 1);
+    } else if (_currentFile.extension.toLowerCase() == 'xlsx') {
+      final preview = await _spreadsheetPreviewFuture;
+      if (preview == null) return const <_DocumentSearchMatch>[];
+      
+      final matches = <_DocumentSearchMatch>[];
+      for (int s = 0; s < preview.sheets.length; s++) {
+        final sheet = preview.sheets[s];
+        for (int r = 0; r < sheet.rows.length; r++) {
+          for (int c = 0; c < sheet.rows[r].length; c++) {
+            final cellText = sheet.rows[r][c];
+            if (cellText.toLowerCase().contains(lowercaseQuery)) {
+              matches.add(
+                _DocumentSearchMatch(
+                  pageNumber: 1,
+                  snippet: cellText,
+                  excelSheetIndex: s,
+                  excelRowIndex: r,
+                  excelColIndex: c,
+                ),
+              );
+            }
+          }
+        }
+      }
+      return matches;
     } else if (_isPreviewableOfficeFile(_currentFile)) {
       final text = await _officeContentFuture ?? '';
       return _collectMatches(text, lowercaseQuery, 1);
@@ -922,6 +950,7 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
             controller: controller,
             autofocus: true,
             decoration: const InputDecoration(hintText: 'Enter file name'),
+            onSubmitted: (value) => Navigator.of(dialogContext).pop(value),
           ),
           actions: <Widget>[
             TextButton(
@@ -937,7 +966,8 @@ class _DocumentViewerScreenState extends State<DocumentViewerScreen> {
       },
     );
     controller.dispose();
-    return result?.trim().isEmpty ?? true ? null : result!.trim();
+    if (result == null || result.trim().isEmpty) return null;
+    return result.trim();
   }
 
   Future<String?> _promptForPdfPassword(
@@ -1248,10 +1278,16 @@ class _DocumentSearchMatch {
   const _DocumentSearchMatch({
     required this.pageNumber,
     required this.snippet,
+    this.excelSheetIndex,
+    this.excelRowIndex,
+    this.excelColIndex,
   });
 
   final int pageNumber;
   final String snippet;
+  final int? excelSheetIndex;
+  final int? excelRowIndex;
+  final int? excelColIndex;
 }
 
 class _HighlightedDocumentText extends StatelessWidget {
@@ -1378,57 +1414,113 @@ class _OfficePreviewError extends StatelessWidget {
   }
 }
 
-class _SpreadsheetPreview extends StatelessWidget {
+class _SpreadsheetPreview extends StatefulWidget {
   const _SpreadsheetPreview({
+    super.key,
     required this.data,
     this.searchQuery = '',
+    this.currentMatchIndex = 0,
+    this.matches = const [],
   });
 
   final SpreadsheetPreviewData data;
   final String searchQuery;
+  final int currentMatchIndex;
+  final List<_DocumentSearchMatch> matches;
+
+  @override
+  State<_SpreadsheetPreview> createState() => _SpreadsheetPreviewState();
+}
+
+class _SpreadsheetPreviewState extends State<_SpreadsheetPreview> with TickerProviderStateMixin {
+  late TabController _tabController;
+  final GlobalKey _activeMatchKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: widget.data.sheets.length, vsync: this);
+    _checkInitialMatch();
+  }
+
+  void _checkInitialMatch() {
+    if (widget.currentMatchIndex >= 0 && widget.currentMatchIndex < widget.matches.length) {
+      final match = widget.matches[widget.currentMatchIndex];
+      if (match.excelSheetIndex != null && match.excelSheetIndex! < _tabController.length) {
+        _tabController.index = match.excelSheetIndex!;
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(_SpreadsheetPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data.sheets.length != widget.data.sheets.length) {
+      _tabController.dispose();
+      _tabController = TabController(length: widget.data.sheets.length, vsync: this);
+    }
+
+    if (oldWidget.currentMatchIndex != widget.currentMatchIndex &&
+        widget.currentMatchIndex >= 0 &&
+        widget.currentMatchIndex < widget.matches.length) {
+      final match = widget.matches[widget.currentMatchIndex];
+      if (match.excelSheetIndex != null && match.excelSheetIndex! < _tabController.length) {
+        _tabController.animateTo(match.excelSheetIndex!);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (data.sheets.isEmpty) {
+    if (widget.data.sheets.isEmpty) {
       return const _OfficePreviewError(message: 'No sheets found in this file.');
     }
 
-    return DefaultTabController(
-      length: data.sheets.length,
-      child: Column(
-        children: [
-          Expanded(
-            child: TabBarView(
-              physics: const NeverScrollableScrollPhysics(),
-              children: data.sheets
-                  .map((sheet) => _SpreadsheetGrid(
-                        sheet: sheet,
-                        searchQuery: searchQuery,
-                      ))
-                  .toList(),
+    return Column(
+      children: [
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            physics: const NeverScrollableScrollPhysics(),
+            children: widget.data.sheets.asMap().entries.map((entry) {
+              return _SpreadsheetGrid(
+                sheet: entry.value,
+                sheetIndex: entry.key,
+                searchQuery: widget.searchQuery,
+                currentMatchIndex: widget.currentMatchIndex,
+                matches: widget.matches,
+                activeMatchKey: _activeMatchKey,
+              );
+            }).toList(),
+          ),
+        ),
+        // SHEET TABS AT BOTTOM
+        Container(
+          decoration: BoxDecoration(
+            color: context.isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFF9FAFB),
+            border: Border(top: BorderSide(color: context.borderColor)),
+          ),
+          child: SafeArea(
+            top: false,
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              indicatorColor: const Color(0xFF16A34A),
+              labelColor: const Color(0xFF16A34A),
+              unselectedLabelColor: context.secondaryText,
+              indicatorWeight: 3,
+              tabs: widget.data.sheets.map((sheet) => Tab(text: sheet.name)).toList(),
             ),
           ),
-          // SHEET TABS AT BOTTOM
-          Container(
-            decoration: BoxDecoration(
-              color: context.isDarkMode ? const Color(0xFF1F2937) : const Color(0xFFF9FAFB),
-              border: Border(top: BorderSide(color: context.borderColor)),
-            ),
-            child: SafeArea(
-              top: false,
-              child: TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                indicatorColor: const Color(0xFF16A34A),
-                labelColor: const Color(0xFF16A34A),
-                unselectedLabelColor: context.secondaryText,
-                indicatorWeight: 3,
-                tabs: data.sheets.map((sheet) => Tab(text: sheet.name)).toList(),
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1436,11 +1528,19 @@ class _SpreadsheetPreview extends StatelessWidget {
 class _SpreadsheetGrid extends StatelessWidget {
   const _SpreadsheetGrid({
     required this.sheet,
+    required this.sheetIndex,
     this.searchQuery = '',
+    this.currentMatchIndex = 0,
+    this.matches = const [],
+    required this.activeMatchKey,
   });
 
   final SpreadsheetSheetData sheet;
+  final int sheetIndex;
   final String searchQuery;
+  final int currentMatchIndex;
+  final List<_DocumentSearchMatch> matches;
+  final GlobalKey activeMatchKey;
 
   String _getColumnLabel(int index) {
     String label = '';
@@ -1453,7 +1553,7 @@ class _SpreadsheetGrid extends StatelessWidget {
     return label;
   }
 
-  Widget _buildCellValue(String text, BuildContext context) {
+  Widget _buildCellValue(String text, int r, int c, BuildContext context) {
     if (searchQuery.trim().isEmpty || !text.toLowerCase().contains(searchQuery.toLowerCase())) {
       return Text(
         text,
@@ -1464,6 +1564,15 @@ class _SpreadsheetGrid extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       );
+    }
+
+    // Check if this cell is the CURRENT match
+    bool isCurrentMatch = false;
+    if (currentMatchIndex >= 0 && currentMatchIndex < matches.length) {
+      final m = matches[currentMatchIndex];
+      if (m.excelSheetIndex == sheetIndex && m.excelRowIndex == r && m.excelColIndex == c) {
+        isCurrentMatch = true;
+      }
     }
 
     final spans = <InlineSpan>[];
@@ -1482,10 +1591,10 @@ class _SpreadsheetGrid extends StatelessWidget {
       spans.add(
         TextSpan(
           text: text.substring(index, index + searchQuery.length),
-          style: const TextStyle(
-            backgroundColor: Color(0xFFFACC15), // Yellow highlight
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
+          style: TextStyle(
+            backgroundColor: isCurrentMatch ? const Color(0xFFF97316) : const Color(0xFFFACC15),
+            color: isCurrentMatch ? Colors.white : Colors.black,
+            fontWeight: isCurrentMatch ? FontWeight.w800 : FontWeight.bold,
           ),
         ),
       );
@@ -1563,27 +1672,50 @@ class _SpreadsheetGrid extends StatelessWidget {
               TableRow(
                 children: [
                   // ROW NUMBER (1, 2, 3...)
-                  Container(
-                    color: headerBg,
-                    width: 40,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Center(
-                      child: Text(
-                        '${r + 1}',
-                        style: const TextStyle(
-                          color: Color(0xFF6B7280),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                  Builder(
+                    builder: (context) {
+                      final bool isMatchRow = currentMatchIndex >= 0 &&
+                          currentMatchIndex < matches.length &&
+                          matches[currentMatchIndex].excelSheetIndex == sheetIndex &&
+                          matches[currentMatchIndex].excelRowIndex == r;
+
+                      if (isMatchRow) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (activeMatchKey.currentContext != null) {
+                            Scrollable.ensureVisible(
+                              activeMatchKey.currentContext!,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                              alignment: 0.5,
+                            );
+                          }
+                        });
+                      }
+
+                      return Container(
+                        key: isMatchRow ? activeMatchKey : null,
+                        color: headerBg,
+                        width: 40,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Center(
+                          child: Text(
+                            '${r + 1}',
+                            style: const TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                   // CELLS
                   for (int c = 0; c < colCount; c++)
                     Container(
                       padding: cellPadding,
                       constraints: const BoxConstraints(minWidth: 80),
-                      child: _buildCellValue(sheet.rows[r][c], context),
+                      child: _buildCellValue(sheet.rows[r][c], r, c, context),
                     ),
                 ],
               ),
