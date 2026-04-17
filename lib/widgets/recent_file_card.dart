@@ -7,14 +7,14 @@ import '../models/app_file.dart';
 import '../utils/formatters.dart';
 import '../utils/theme_utils.dart';
 
-enum RecentFileAction { favorite, share, save, delete }
+import 'file_action_menu.dart';
 
 class RecentFileCard extends StatelessWidget {
   const RecentFileCard({
     super.key,
     required this.file,
     required this.onTap,
-    required this.onFavorite,
+    required this.onFavorite, // This is now toggle handled inside StandardFileActionMenu
     this.onShare,
     this.onSave,
     this.onDelete,
@@ -86,59 +86,11 @@ class RecentFileCard extends StatelessWidget {
                   ],
                 ),
               ),
-              PopupMenuButton<RecentFileAction>(
-                tooltip: 'More actions',
-                padding: const EdgeInsets.all(4),
-                iconSize: 20,
-                icon: Icon(
-                  Icons.more_vert_rounded,
-                  color: context.secondaryText,
-                ),
-                onSelected: (value) {
-                  switch (value) {
-                    case RecentFileAction.favorite:
-                      onFavorite();
-                      break;
-                    case RecentFileAction.share:
-                      if (onShare != null) {
-                        onShare!();
-                      }
-                      break;
-                    case RecentFileAction.save:
-                      if (onSave != null) {
-                        onSave!();
-                      }
-                      break;
-                    case RecentFileAction.delete:
-                      if (onDelete != null) {
-                        onDelete!();
-                      }
-                      break;
-                  }
-                },
-                itemBuilder: (context) => <PopupMenuEntry<RecentFileAction>>[
-                  PopupMenuItem<RecentFileAction>(
-                    value: RecentFileAction.favorite,
-                    child: Text(file.isFavorite
-                        ? 'Remove favorite'
-                        : 'Add to favorite'),
-                  ),
-                  if (onShare != null)
-                    const PopupMenuItem<RecentFileAction>(
-                      value: RecentFileAction.share,
-                      child: Text('Share'),
-                    ),
-                  if (onSave != null)
-                    const PopupMenuItem<RecentFileAction>(
-                      value: RecentFileAction.save,
-                      child: Text('Save'),
-                    ),
-                  if (onDelete != null)
-                    const PopupMenuItem<RecentFileAction>(
-                      value: RecentFileAction.delete,
-                      child: Text('Delete'),
-                    ),
-                ],
+              StandardFileActionMenu(
+                file: file,
+                onOpen: onTap,
+                onSave: onSave,
+                onChanged: onFavorite, // Triggers Refresh
               ),
             ],
           ),
