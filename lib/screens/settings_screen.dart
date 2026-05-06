@@ -26,7 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'https://play.google.com/store/apps/details?id=com.example.pdf_studio';
   static const String _shareMessage =
       'Try PDF Studio for fast offline document reading and PDF tools.\n\n$_playStoreUrl';
-  static const String _privacyUrl = 'https://www.example.com/privacy-policy';
+  static const String _privacyUrl = 'https://surajchaurasia84.github.io/Document-Reader/';
   static const String _aboutAssetPath = 'assets/about_us.txt';
 
   late final StorageInfoService _storageInfoService = StorageInfoService();
