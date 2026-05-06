@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - PDF Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #818cf8;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #0f172a;
+                --card-bg: #1e293b;
+                --text-main: #f1f5f9;
+                --text-muted: #94a3b8;
+                --border: #334155;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 2rem 1rem;
+            transition: background-color 0.3s ease;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 3rem;
+            border-radius: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        .last-updated {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 300;
+        }
+
+        section {
+            margin-bottom: 2.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+        }
+
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            margin-right: 12px;
+            border-radius: 2px;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+            font-size: 1.05rem;
+        }
+
+        ul {
+            list-style: none;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.75rem;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--text-muted);
+        }
+
+        li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .highlight-box {
+            background: rgba(99, 102, 241, 0.05);
+            border-left: 4px solid var(--primary);
+            padding: 1.5rem;
+            border-radius: 0 12px 12px 0;
+            margin: 1.5rem 0;
+        }
+
+        footer {
+            margin-top: 4rem;
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .contact-btn {
+            display: inline-block;
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            background-color: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .contact-btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 1.5rem;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Privacy Policy</h1>
+            <p class="last-updated">Effective Date: May 6, 2026</p>
+        </header>
+
+        <section>
+            <h2>Introduction</h2>
+            <p>Welcome to <strong>PDF Studio</strong>. We respect your privacy and are committed to protecting the personal data you share with us. This policy explains how we handle your information when you use our mobile application.</p>
+            <div class="highlight-box">
+                <strong>Offline-First Commitment:</strong> PDF Studio is designed to function primarily offline. Most of your document processing, including PDF viewing, scanning, and OCR, happens directly on your device.
+            </div>
+        </section>
+
+        <section>
+            <h2>Information We Collect</h2>
+            <p>We do not collect personal identifiers like your name, email address, or phone number unless you explicitly provide them for support purposes. However, the app may access certain data to provide its core features:</p>
+            <ul>
+                <li><strong>Documents & Files:</strong> The app requires access to your device's storage to read, edit, and save PDF and other document files. These files remain on your device and are never uploaded to our servers.</li>
+                <li><strong>Camera Data:</strong> Access to your camera is used solely for the document scanning and OCR features. Images captured are processed locally on your device.</li>
+                <li><strong>Usage Statistics:</strong> We may collect anonymous technical data (e.g., device model, OS version, app crashes) to improve performance and stability.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Permissions</h2>
+            <p>To provide a full-featured experience, PDF Studio requests the following permissions:</p>
+            <ul>
+                <li><strong>Storage/Photos/Media:</strong> To select and save documents.</li>
+                <li><strong>Camera:</strong> To scan physical documents and perform OCR.</li>
+                <li><strong>Internet Access:</strong> Required for displaying advertisements (via Unity Ads) and checking for app updates.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Third-Party Services</h2>
+            <p>We use third-party services that may collect information used to identify you:</p>
+            <ul>
+                <li><strong>Unity Ads:</strong> We use Unity Ads to support the development of this free application. Unity may collect data such as your IP address, device ID, and ad interaction data to serve relevant advertisements. Please refer to <a href="https://unity3d.com/legal/privacy-policy" style="color: var(--primary);">Unity's Privacy Policy</a> for more details.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Data Security</h2>
+            <p>We implement a variety of security measures to maintain the safety of your personal information. Since your documents are stored locally, their security depends on your device's overall security settings.</p>
+        </section>
+
+        <section>
+            <h2>Changes to This Policy</h2>
+            <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date.</p>
+        </section>
+
+        <section>
+            <h2>Contact Us</h2>
+            <p>If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us.</p>
+            <a href="mailto:pdfstudio9@gmail.com" class="contact-btn">Email Support</a>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 PDF Studio. All rights reserved.</p>
+        </footer>
+    </div>
+</body>
+</html>
