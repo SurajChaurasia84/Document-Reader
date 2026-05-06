@@ -40,13 +40,13 @@
             background-color: var(--bg);
             color: var(--text-main);
             line-height: 1.6;
-            padding: 2rem 1rem;
+            padding: 0;
             transition: background-color 0.3s ease;
         }
 
         .container {
             max-width: 800px;
-            margin: 0 auto;
+            margin: 2rem auto;
             background: var(--card-bg);
             padding: 3rem;
             border-radius: 24px;
@@ -161,7 +161,25 @@
 
         @media (max-width: 640px) {
             .container {
-                padding: 1.5rem;
+                padding: 2rem 1.5rem;
+                margin: 0;
+                border-radius: 0;
+                box-shadow: none;
+                border: none;
+            }
+            header {
+                border-bottom: none;
+            }
+            h2::before {
+                display: none;
+            }
+            .highlight-box {
+                border-left: none;
+                background: rgba(99, 102, 241, 0.08);
+                border-radius: 12px;
+            }
+            footer {
+                border-top: none;
             }
             h1 {
                 font-size: 1.8rem;
@@ -180,17 +198,16 @@
             <h2>Introduction</h2>
             <p>Welcome to <strong>PDF Studio</strong>. We respect your privacy and are committed to protecting the personal data you share with us. This policy explains how we handle your information when you use our mobile application.</p>
             <div class="highlight-box">
-                <strong>Offline-First Commitment:</strong> PDF Studio is designed to function primarily offline. Most of your document processing, including PDF viewing, scanning, and OCR, happens directly on your device.
+                <strong>Offline-First Commitment:</strong> PDF Studio is designed to function primarily offline. Your document processing, including PDF viewing, editing, and scanning, happens directly on your device.
             </div>
         </section>
 
         <section>
             <h2>Information We Collect</h2>
-            <p>We do not collect personal identifiers like your name, email address, or phone number unless you explicitly provide them for support purposes. However, the app may access certain data to provide its core features:</p>
+            <p>We do not collect personal identifiers like your name, email address, or phone number. The app operates locally on your device to provide its core features:</p>
             <ul>
-                <li><strong>Documents & Files:</strong> The app requires access to your device's storage to read, edit, and save PDF and other document files. These files remain on your device and are never uploaded to our servers.</li>
-                <li><strong>Camera Data:</strong> Access to your camera is used solely for the document scanning and OCR features. Images captured are processed locally on your device.</li>
-                <li><strong>Usage Statistics:</strong> We may collect anonymous technical data (e.g., device model, OS version, app crashes) to improve performance and stability.</li>
+                <li><strong>Documents & Files:</strong> The app requires access to your device's storage to read, edit, and manage PDF and other document files. These files remain on your device and are never uploaded to our servers.</li>
+                <li><strong>Camera Data:</strong> Access to your camera is used solely for the document scanning feature. Images captured are processed locally on your device to create PDFs.</li>
             </ul>
         </section>
 
@@ -198,9 +215,9 @@
             <h2>Permissions</h2>
             <p>To provide a full-featured experience, PDF Studio requests the following permissions:</p>
             <ul>
-                <li><strong>Storage/Photos/Media:</strong> To select and save documents.</li>
-                <li><strong>Camera:</strong> To scan physical documents and perform OCR.</li>
-                <li><strong>Internet Access:</strong> Required for displaying advertisements (via Unity Ads) and checking for app updates.</li>
+                <li><strong>Storage/Photos/Media:</strong> To select, manage, and save documents.</li>
+                <li><strong>Camera:</strong> To scan physical documents and convert them to PDF.</li>
+                <li><strong>Internet Access:</strong> Required for displaying advertisements (via Unity Ads).</li>
             </ul>
         </section>
 
@@ -214,7 +231,7 @@
 
         <section>
             <h2>Data Security</h2>
-            <p>We implement a variety of security measures to maintain the safety of your personal information. Since your documents are stored locally, their security depends on your device's overall security settings.</p>
+            <p>We implement security measures to maintain the safety of your information. Since your documents are stored locally, their security depends on your device's overall security settings.</p>
         </section>
 
         <section>
