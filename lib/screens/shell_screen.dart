@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+import '../services/ad_service.dart';
 
 import '../services/app_controller.dart';
 import '../utils/app_theme.dart';
@@ -47,52 +49,64 @@ class ShellScreen extends StatelessWidget {
           icon: const Icon(Icons.document_scanner),
           label: const Text('Scan'),
         ),
-        bottomNavigationBar: Container(
-          color: context.panelBackground,
-          padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
-          child: SafeArea(
-            top: false,
-            child: Row(
-              children: <Widget>[
-                Expanded(
-                  child: _BottomTabItem(
-                    icon: Icons.home_outlined,
-                    selectedIcon: Icons.home_rounded,
-                    label: 'Home',
-                    selected: controller.currentIndex == 0,
-                    onTap: () => controller.updateNavigation(0),
-                  ),
-                ),
-                Expanded(
-                  child: _BottomTabItem(
-                    icon: Icons.auto_fix_high_outlined,
-                    selectedIcon: Icons.auto_fix_high_rounded,
-                    label: 'Tools',
-                    selected: controller.currentIndex == 1,
-                    onTap: () => controller.updateNavigation(1),
-                  ),
-                ),
-                Expanded(
-                  child: _BottomTabItem(
-                    icon: Icons.folder_outlined,
-                    selectedIcon: Icons.folder_rounded,
-                    label: 'Files',
-                    selected: controller.currentIndex == 2,
-                    onTap: () => controller.updateNavigation(2),
-                  ),
-                ),
-                Expanded(
-                  child: _BottomTabItem(
-                    icon: Icons.settings_outlined,
-                    selectedIcon: Icons.settings,
-                    label: 'Settings',
-                    selected: controller.currentIndex == 3,
-                    onTap: () => controller.updateNavigation(3),
-                  ),
-                ),
-              ],
+        bottomNavigationBar: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            UnityBannerAd(
+              placementId: AdService.bannerPlacementId,
+              onLoad: (placementId) => print('Banner loaded: $placementId'),
+              onClick: (placementId) => print('Banner clicked: $placementId'),
+              onFailed: (placementId, error, message) =>
+                  print('Banner failed: $placementId $error $message'),
             ),
-          ),
+            Container(
+              color: context.panelBackground,
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 6),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: _BottomTabItem(
+                        icon: Icons.home_outlined,
+                        selectedIcon: Icons.home_rounded,
+                        label: 'Home',
+                        selected: controller.currentIndex == 0,
+                        onTap: () => controller.updateNavigation(0),
+                      ),
+                    ),
+                    Expanded(
+                      child: _BottomTabItem(
+                        icon: Icons.auto_fix_high_outlined,
+                        selectedIcon: Icons.auto_fix_high_rounded,
+                        label: 'Tools',
+                        selected: controller.currentIndex == 1,
+                        onTap: () => controller.updateNavigation(1),
+                      ),
+                    ),
+                    Expanded(
+                      child: _BottomTabItem(
+                        icon: Icons.folder_outlined,
+                        selectedIcon: Icons.folder_rounded,
+                        label: 'Files',
+                        selected: controller.currentIndex == 2,
+                        onTap: () => controller.updateNavigation(2),
+                      ),
+                    ),
+                    Expanded(
+                      child: _BottomTabItem(
+                        icon: Icons.settings_outlined,
+                        selectedIcon: Icons.settings,
+                        label: 'Settings',
+                        selected: controller.currentIndex == 3,
+                        onTap: () => controller.updateNavigation(3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

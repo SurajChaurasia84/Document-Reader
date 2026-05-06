@@ -16,6 +16,7 @@ import 'pdf_service.dart';
 import 'scanner_service.dart';
 import 'storage_info_service.dart';
 import 'storage_service.dart';
+import 'ad_service.dart';
 
 class AppController extends ChangeNotifier {
   AppController({
@@ -263,6 +264,7 @@ class AppController extends ChangeNotifier {
         outputFileName: outputFileName,
       );
       statusMessage = 'Merged PDF saved to $output';
+      AdService.showInterstitialAd();
       await refreshAll();
       return output;
     });
